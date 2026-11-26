@@ -4,18 +4,22 @@ import { useGrokTheme } from "./kit";
 import { fmt } from "./util";
 
 export function Anillo({ valor, objetivo, etiqueta, unidad, color, minimo }: { valor: number; objetivo: number; etiqueta: string; unidad: string; color: string; minimo?: number }) {
-  const th = useGrokTheme();
-  const R = 38, C = 2 * Math.PI * R;
+  const [tocado, setTocado] = useState(false);
+  const R = 40, C = 2 * Math.PI * R;
   const frac = Math.max(0, Math.min(1, valor / Math.max(objetivo, 1)));
-  const pasado = valor > objetivo * 1.08;
-  const col = pasado ? th.text.warning : color;
   return (
-    <div class="ring" role="img" aria-label={`${etiqueta}: ${fmt(valor)} de ${fmt(objetivo)} ${unidad}`}>
-      <svg viewBox="0 0 100 100" width="100%" height="100%">
-        <circle cx="50" cy="50" r={R} fill="none" stroke={th.border.subtle} strokeWidth="9" />
-        <circle cx="50" cy="50" r={R} fill="none" stroke={col} strokeWidth="9" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} transform="rotate(-90 50 50)" />
-      </svg>
-      <div class="ring__t"><b>{fmt(valor)}{unidad === "g" ? <small class="ring__u">{"\u00a0g"}</small> : null}</b><span>{etiqueta}</span></div>
+    <div class="ring-wrap">
+      <div class="ring" role="img" aria-label={`${etiqueta}: ${fmt(valor)} de ${fmt(objetivo)} ${unidad}`} onClick={() => setTocado(!tocado)} style={{ cursor: "pointer" }}>
+        <svg viewBox="0 0 100 100" width="100%" height="100%">
+          <circle cx="50" cy="50" r={R} fill="none" stroke={color} strokeWidth="9" opacity="0.2" />
+          <circle cx="50" cy="50" r={R} fill="none" stroke={color} strokeWidth="9" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} transform="rotate(-90 50 50)" />
+        </svg>
+        <div class="ring__t">
+          <b>{Math.round(valor)}</b>
+        </div>
+      </div>
+      <span class="ring__lbl">{etiqueta}</span>
+      {tocado ? <div class="ring-popover">{fmt(valor)} de {fmt(objetivo)} {unidad}</div> : null}
     </div>
   );
 }

@@ -26,47 +26,47 @@ options.vnode = (vnode) => {
 /* ------------------------------------------------------------------ */
 /* Tema                                                                */
 /* ------------------------------------------------------------------ */
-const FAMILY = 'system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif';
+const FAMILY = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif';
 
 function makeTheme(dark: boolean) {
   return {
     kind: dark ? ("dark" as const) : ("light" as const),
     font: {
       family: FAMILY,
-      heading1: { fontSize: 28, lineHeight: "34px", letterSpacing: "-0.02em" },
-      heading3: { fontSize: 18, lineHeight: "24px", letterSpacing: "-0.01em" },
-      body1: { fontSize: 16, lineHeight: "22px" },
+      heading1: { fontSize: 34, lineHeight: "41px", letterSpacing: "-0.02em" },
+      heading3: { fontSize: 20, lineHeight: "25px", letterSpacing: "-0.01em" },
+      body1: { fontSize: 17, lineHeight: "22px" },
       subtext: { fontSize: 15, lineHeight: "20px" },
-      label: { fontSize: 13.5, lineHeight: "18px" },
-      caption: { fontSize: 13, lineHeight: "17px" },
-      metric: { fontSize: 26, lineHeight: "30px", letterSpacing: "-0.02em" },
+      label: { fontSize: 13, lineHeight: "18px" },
+      caption: { fontSize: 12, lineHeight: "16px" },
+      metric: { fontSize: 28, lineHeight: "34px", letterSpacing: "-0.02em" },
     },
-    weight: { regular: 400, medium: 500, semibold: 600 },
-    radius: { full: 999, xl: 16 },
+    weight: { regular: 400, medium: 500, semibold: 600, bold: 700 },
+    radius: { full: 999, xl: 20 },
     motion: { hover: "120ms", easing: "ease-out" },
     text: dark
-      ? { primary: "#f5f5f7", secondary: "#c3c3cc", tertiary: "#a1a1aa", accent: "#b79cff", accentDeep: "#e0d4ff", success: "#4cd77a", warning: "#ffb938" }
-      : { primary: "#111114", secondary: "#44444c", tertiary: "#5f5f69", accent: "#5b2fc4", accentDeep: "#3f1d92", success: "#12803c", warning: "#a85a00" },
+      ? { primary: "#f5f5f7", secondary: "rgba(235,235,245,0.6)", tertiary: "rgba(235,235,245,0.3)", accent: "#0a84ff", accentDeep: "#64d2ff", success: "#30d158", warning: "#ff9f0a", danger: "#ff453a", yellow: "#ffd60a", purple: "#bf5af2", pink: "#ff375f", teal: "#64d2ff" }
+      : { primary: "#000000", secondary: "rgba(60,60,67,0.6)", tertiary: "rgba(60,60,67,0.3)", accent: "#007AFF", accentDeep: "#0051d5", success: "#34c759", warning: "#ff9500", danger: "#ff3b30", yellow: "#ffcc00", purple: "#af52de", pink: "#ff2d55", teal: "#5ac8fa" },
     fill: dark
-      ? { secondary: "#2c2c2e", accent: "#7c4dde", accentSubtle: "rgba(150,110,255,0.2)" }
-      : { secondary: "#ece8f5", accent: "#6a35d6", accentSubtle: "#ece4fd" },
+      ? { secondary: "#2c2c2e", accent: "#0a84ff", accentSubtle: "rgba(10,132,255,0.22)" }
+      : { secondary: "#e5e5ea", accent: "#007AFF", accentSubtle: "rgba(0,122,255,0.12)" },
     bg: { elevated: dark ? "#1c1c1e" : "#ffffff" },
     border: dark
-      ? { subtle: "rgba(235,235,245,0.14)", strong: "rgba(235,235,245,0.29)" }
-      : { subtle: "rgba(60,60,67,0.14)", strong: "rgba(60,60,67,0.29)" },
+      ? { subtle: "rgba(235,235,245,0.18)", strong: "rgba(235,235,245,0.3)" }
+      : { subtle: "rgba(60,60,67,0.12)", strong: "rgba(60,60,67,0.25)" },
     dataviz: dark
       ? {
-          categorical: ["#a78bfa", "#ff9a3c", "#3fcf7a", "#5fb0ff", "#2cc4d6"],
-          other: "#707887",
-          blue5: "#7fb0ff",
-          sequential: ["#3a2475", "#5b3aa8", "#7c4dde", "#a78bfa", "#d3c3ff"],
+          categorical: ["#0a84ff", "#ff9f0a", "#30d158", "#64d2ff", "#bf5af2", "#ffd60a", "#ff375f"],
+          other: "#8e8e93",
+          blue5: "#0a84ff",
+          sequential: ["#1c3a6c", "#1d4ed8", "#0a84ff", "#64d2ff", "#b9f2ff"],
           areaAlpha: "33",
         }
       : {
-          categorical: ["#6a35d6", "#e8741a", "#17884a", "#1a64dc", "#0e8fa1"],
-          other: "#6b7280",
-          blue5: "#7fb0ff",
-          sequential: ["#e3d9fa", "#c1abf3", "#9370e6", "#6a35d6", "#43208f"],
+          categorical: ["#007AFF", "#ff9500", "#34c759", "#5ac8fa", "#af52de", "#ffcc00", "#ff2d55"],
+          other: "#8e8e93",
+          blue5: "#007AFF",
+          sequential: ["#d0e1fd", "#82b1ff", "#3b82f6", "#007AFF", "#003b95"],
           areaAlpha: "33",
         },
   };

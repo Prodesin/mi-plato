@@ -10,6 +10,12 @@ os.makedirs(OUT, exist_ok=True)
 VIEWS = [("exterior", 466, 678), ("exterior", 678, 466), ("interior", 951, 669), ("interior", 669, 951), ("iphone", 390, 844)]
 TABS = ["hoy", "semana", "alimentos", "ajustes"]
 fails = []
+def meals_txt(page):
+    """Las comidas son tarjetas compactas: abre todas para leer los alimentos."""
+    for el in page.locator(".meal-compact__main").all():
+        if not el.evaluate("e => !!e.parentElement.querySelector('.meal-compact__details')"): el.click(); page.wait_for_timeout(80)
+    return page.inner_text(".meals")
+
 def fail(m):
     fails.append(m); print("✗", m)
 
@@ -89,13 +95,14 @@ def run():
         n0 = page.locator(".item-row").count()
         # cambiar gramos: botón ×2 sobre el primer alimento y comprobar que las cifras se recalculan
         before = page.inner_text(".k-metrics.tight")
+        page.locator(".item-row__name").first.click(); page.wait_for_timeout(100)  # el detalle se abre al tocar
         page.locator(".qty__f button", has_text="×2").first.click(); page.wait_for_timeout(150)
         after = page.inner_text(".k-metrics.tight")
         if before == after: fail("las cifras no se recalculan al cambiar la cantidad")
         page.locator(".qty__f button", has_text="½").first.click(); page.wait_for_timeout(100)
         page.click(".sheet__foot .k-btn--primary"); page.wait_for_timeout(300)
         if page.query_selector(".sheet"): fail("la revisión no se cierra al guardar")
-        if "Café con leche" not in page.inner_text(".meals"): fail("la comida guardada no aparece en Hoy")
+        if "Café con leche" not in meals_txt(page): fail("la comida guardada no aparece en Hoy")
         if page.input_value("textarea") != "": fail("el texto debería vaciarse al guardar")
         page.fill("textarea", "un plato de lentejas")
         page.click("text=Corregir mi comida"); page.wait_for_selector(".sheet")
@@ -103,7 +110,7 @@ def run():
         page.click(".sheet__foot .k-btn--primary"); page.wait_for_timeout(300)
         page.screenshot(path=f"{OUT}/iphone-390x844-hoy-funcional.png", full_page=True)
         page.reload(); page.wait_for_selector(".meals")
-        t = page.inner_text(".meals")
+        t = meals_txt(page)
         if "Lentejas" not in t or "Café con leche" not in t: fail("los datos no persisten tras recargar")
         # exportar / importar
         page.click("#tab-ajustes"); page.wait_for_timeout(200)
@@ -120,7 +127,7 @@ def run():
         page.set_input_files("input[type=file][accept*=json]", path); page.wait_for_selector(".k-dialog[open]")
         page.click(".k-dialog[open] .k-btn--danger"); page.wait_for_timeout(300)
         page.click("#tab-hoy"); page.wait_for_timeout(200)
-        if "Lentejas" not in page.inner_text(".meals"): fail("la importación no restaura las comidas")
+        if "Lentejas" not in meals_txt(page): fail("la importación no restaura las comidas")
         # importación inválida
         open(f"{OUT}/malo.json", "w").write('{"app":"otra","data":{}}')
         page.click("#tab-ajustes"); page.set_input_files("input[type=file][accept*=json]", f"{OUT}/malo.json"); page.wait_for_timeout(300)

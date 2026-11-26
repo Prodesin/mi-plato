@@ -63,6 +63,7 @@ def run():
                     overflow(t)
                     if t == "resumen":
                         if w == 466 and h == 678 and page.evaluate("document.documentElement.scrollHeight") > h + 1: fail(f"el Resumen no cabe sin scroll en {tag}{suf}: {page.evaluate('document.documentElement.scrollHeight')} > {h}")
+                        if page.evaluate("[...document.querySelectorAll('.res__acciones .k-btn, .res__foto, .res__ver')].some(e => e.getBoundingClientRect().height > 64)"): fail(f"botones del Resumen demasiado altos (>64 px) en {tag}{suf}")
                         if page.locator(".res__ring").count() != 1 or page.locator(".res__frase").count() != 1 or "Añadir comida" not in page.inner_text(".res__acciones"): fail(f"al Resumen le falta el anillo, la frase o «Añadir comida» en {tag}{suf}")
                     if t == "hoy":
                         if page.evaluate("getComputedStyle(document.querySelector('textarea[aria-label=\"¿Qué estás comiendo?\"]')).resize") != "none": fail(f"la caja de texto aún se puede redimensionar en {tag}{suf}")

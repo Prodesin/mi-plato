@@ -727,8 +727,8 @@ textarea.k-input.entrada__ta, .entrada .entrada__ta { resize: none !important; }
   .res__centro span { max-width: 110px; font-size: 13px; }
   .res__frase { font-size: clamp(24px, 3.6vh, 32px); }
   .res__consejo { font-size: 16px; }
-  .res__acciones .k-btn, .res__foto { min-height: 60px; }
-  .res__ver { min-height: 60px; }
+  .res__acciones .k-btn, .res__foto { min-height: 54px; max-height: 56px; }
+  .res__ver { min-height: 54px; max-height: 56px; }
 }
 @media (min-width: 560px) and (max-aspect-ratio: 11/10) {
   .res { gap: 14px; }
@@ -737,11 +737,11 @@ textarea.k-input.entrada__ta, .entrada .entrada__ta { resize: none !important; }
   .res__semana { padding: 6px 12px 0; }
 }
 @media (min-width: 560px) and (min-aspect-ratio: 11/10) {
-  .res { grid-template-rows: auto 2fr 1fr 1fr; align-items: stretch; flex: 1 1 auto; }
-  .res__dia { grid-row: 2 / span 3; }
+  .res { grid-template-rows: auto auto auto 1fr; align-items: start; align-content: stretch; row-gap: 16px; flex: 1 1 auto; }
+  .res__dia { grid-row: 2 / span 3; align-self: stretch; }
   .res__acciones { grid-row: 2; }
   .res__ver { grid-row: 3; }
-  .res__semana { grid-row: 4; align-items: center; }
+  .res__semana { grid-row: 4; align-self: center; }
   .res__ring { width: clamp(150px, min(28vw, 54vh), 380px); }
   .res__leyenda li { flex-wrap: wrap; }
 }

@@ -1,0 +1,120 @@
+/* Pantalla «Más»: perfil y objetivos, inteligencia artificial, Coco, copia de seguridad, enlaces y privacidad. */
+import { useState } from "preact/hooks";
+import { ErrorIA, PROVEEDORES, cargarModelos, probarConexion, provInfo } from "./ai";
+import { BackupPanel, Block, LinksPanel, PrivacyPanel } from "./backup";
+import type { Datos } from "./data";
+import { Button, Input, Select, Text, Toggle, toast } from "./kit";
+import { useSecretos } from "./store";
+import type { Perfil, Proveedor } from "./types";
+import { PERFIL_JORGE } from "./types";
+
+function Num({ label, k, perfil, set, hint }: { label: string; k: keyof Perfil; perfil: Perfil; set: (p: Perfil) => void; hint?: string }) {
+  return (
+    <label class="k-field">
+      <span class="k-field__label">{label}</span>
+      <input class="k-input" inputMode="decimal" autoComplete="off" value={String(perfil[k]).replace(".", ",")} onInput={(e) => { const v = parseFloat((e.currentTarget as HTMLInputElement).value.replace(",", ".")); if (Number.isFinite(v) && v >= 0) set({ ...perfil, [k]: v }); }} />
+      {hint ? <small class="muted">{hint}</small> : null}
+    </label>
+  );
+}
+
+export function Ajustes({ datos }: { datos: Datos }) {
+  const { perfil, setPerfil, ajustes, setAjustes } = datos;
+  const [sec, setSec] = useSecretos();
+  const [modelos, setModelos] = useState<string[]>([]);
+  const [ocupado, setOcupado] = useState("");
+  const [ver, setVer] = useState(false);
+  const prov = provInfo(ajustes.proveedor);
+  const clave = sec.claves[ajustes.proveedor] ?? "";
+  const modelo = ajustes.modelos[ajustes.proveedor] ?? "";
+
+  async function cargar() {
+    setOcupado("modelos");
+    try {
+      const l = await cargarModelos({ proveedor: ajustes.proveedor, clave });
+      setModelos(l);
+      toast(l.length ? `${l.length} modelos cargados.` : "No ha devuelto modelos.");
+    } catch (e) { toast(e instanceof ErrorIA ? e.message : "No se pudo conectar: revisa la clave.", true); }
+    setOcupado("");
+  }
+  async function probar() {
+    setOcupado("probar");
+    try {
+      await probarConexion({ proveedor: ajustes.proveedor, clave, modelo: modelo || prov.defecto });
+      toast("Conexión correcta: la IA responde.");
+    } catch (e) { toast(e instanceof ErrorIA ? e.message : "No se pudo conectar: revisa la clave.", true); }
+    setOcupado("");
+  }
+
+  return (
+    <div class="cols">
+      <div class="col col-a">
+        <div style={{ order: 0 }}>
+          <Block heading="Tú y tus objetivos">
+            <Text>Todo esto se puede cambiar. Con estos números te corrijo las comidas.</Text>
+            <Input label="Nombre" value={perfil.nombre} onChange={(v) => setPerfil({ ...perfil, nombre: v })} />
+            <div class="k-grid g2">
+              <Num label="Altura (cm)" k="altura" perfil={perfil} set={setPerfil} />
+              <Num label="Peso (kg)" k="peso" perfil={perfil} set={setPerfil} />
+              <Num label="Calorías al día (objetivo)" k="kcal" perfil={perfil} set={setPerfil} />
+              <Num label="Proteína al día (g)" k="prot" perfil={perfil} set={setPerfil} />
+              <Num label="Calorías mínimas" k="kcalMin" perfil={perfil} set={setPerfil} />
+              <Num label="Calorías máximas" k="kcalMax" perfil={perfil} set={setPerfil} />
+              <Num label="Proteína mínima (g)" k="protMin" perfil={perfil} set={setPerfil} />
+              <Num label="Fibra al día (g, como mínimo)" k="fibra" perfil={perfil} set={setPerfil} />
+              <Num label="Hidratos al día: mínimo (g)" k="hcMin" perfil={perfil} set={setPerfil} />
+              <Num label="Hidratos al día: máximo (g)" k="hcMax" perfil={perfil} set={setPerfil} />
+              <Num label="Hidratos por comida principal (g)" k="hcComida" perfil={perfil} set={setPerfil} hint="pan, arroz, pasta, patata, fruta…" />
+              <Num label="Grasa al día: de (g)" k="grMin" perfil={perfil} set={setPerfil} />
+              <Num label="Grasa al día: hasta (g)" k="grMax" perfil={perfil} set={setPerfil} />
+            </div>
+            <div class="btn-row"><Button label="Volver a los valores de Jorge" onClick={() => { setPerfil(PERFIL_JORGE); toast("Valores restaurados."); }} /></div>
+          </Block>
+        </div>
+        <div style={{ order: 1 }}>
+          <Block heading="Coco (tu asistente)">
+            <Text>Desde «Hoy» y «Semana» puedes mandarle a Coco tus comidas. Lo normal es compartir o copiar el texto; lo de abajo es opcional.</Text>
+            <Input label="URL del webhook de Coco (opcional)" value={sec.cocoUrl} onChange={(v) => setSec({ ...sec, cocoUrl: v.trim() })} placeholder="https://…" />
+            <label class="k-field"><span class="k-field__label">Clave del webhook (opcional)</span>
+              <input class="k-input" type="password" autoComplete="off" autoCapitalize="off" spellcheck={false} value={sec.cocoClave} onInput={(e) => setSec({ ...sec, cocoClave: (e.currentTarget as HTMLInputElement).value.trim() })} /></label>
+            <Text>Desde el navegador el webhook puede fallar por una limitación de seguridad (CORS). Si falla, no pasa nada: se usa el Atajo o se comparte el texto.</Text>
+            <Toggle label="Tengo creado el Atajo de iPhone" value={ajustes.usarAtajo} onChange={(v) => setAjustes((a) => ({ ...a, usarAtajo: v }))} />
+            <Input label="Nombre del Atajo" value={ajustes.atajo} onChange={(v) => setAjustes((a) => ({ ...a, atajo: v }))} placeholder="Enviar a Coco" />
+            <details class="ayuda"><summary>Cómo crear el Atajo</summary>
+              <ol class="k-steps">
+                <li><span class="k-steps__n">1</span><span class="k-steps__body"><span class="k-steps__title">En la app Atajos, crea uno nuevo con el nombre «{ajustes.atajo || "Enviar a Coco"}».</span></span></li>
+                <li><span class="k-steps__n">2</span><span class="k-steps__body"><span class="k-steps__title">Añade la acción «Obtener contenido de URL» con la URL del webhook y método POST.</span></span></li>
+                <li><span class="k-steps__n">3</span><span class="k-steps__body"><span class="k-steps__title">Cabeceras: Authorization = Bearer tu clave; Content-Type = application/json.</span></span></li>
+                <li><span class="k-steps__n">4</span><span class="k-steps__body"><span class="k-steps__title">Cuerpo de la solicitud: Archivo → elige «Portapapeles».</span></span></li>
+              </ol>
+              <Text>Los Atajos no tienen CORS, por eso funcionan. Mi plato copia el contenido y abre el Atajo.</Text>
+            </details>
+          </Block>
+        </div>
+      </div>
+      <div class="col col-b">
+        <div style={{ order: 2 }}>
+          <Block heading="Inteligencia artificial (opcional)">
+            <Text>Sin IA la app ya funciona. Con IA puedes hacer una foto al plato y la primera estimación es más rápida; después siempre la revisas tú.</Text>
+            <Toggle label="Usar IA además del modo base" value={ajustes.usarIA} onChange={(v) => setAjustes((a) => ({ ...a, usarIA: v }))} />
+            <Select<Proveedor> label="Proveedor" options={PROVEEDORES.map((p) => ({ value: p.id, label: p.nombre }))} value={ajustes.proveedor} onChange={(v) => { setAjustes((a) => ({ ...a, proveedor: v })); setModelos([]); }} />
+            <p class="k-text muted tiny">{prov.nota} Clave: <a href={prov.claveUrl} target="_blank" rel="noopener">{prov.claveUrl.replace("https://", "")}</a></p>
+            <label class="k-field"><span class="k-field__label">Clave de API</span>
+              <span class="row-in tight"><input class="k-input" type={ver ? "text" : "password"} autoComplete="off" autoCapitalize="off" spellcheck={false} value={clave} placeholder="pega aquí tu clave" onInput={(e) => setSec({ ...sec, claves: { ...sec.claves, [ajustes.proveedor]: (e.currentTarget as HTMLInputElement).value.trim() } })} />
+                <button type="button" class="k-btn" onClick={() => setVer((v) => !v)}>{ver ? "Ocultar" : "Ver"}</button></span></label>
+            <label class="k-field"><span class="k-field__label">Modelo</span>
+              <input class="k-input" list="modelos-ia" autoComplete="off" autoCapitalize="off" spellcheck={false} value={modelo} placeholder={prov.defecto} onInput={(e) => { const v = (e.currentTarget as HTMLInputElement).value.trim(); setAjustes((a) => ({ ...a, modelos: { ...a.modelos, [a.proveedor]: v } })); }} />
+              <datalist id="modelos-ia">{modelos.map((m) => <option value={m} key={m} />)}</datalist>
+              <small class="muted">Si lo dejas vacío uso {prov.defecto}.</small></label>
+            <div class="btn-row"><Button label={ocupado === "modelos" ? "Cargando…" : "Cargar modelos"} disabled={!!ocupado} onClick={cargar} /><Button label={ocupado === "probar" ? "Probando…" : "Probar conexión"} disabled={!!ocupado} onClick={probar} /></div>
+            <div class="notice"><Text><b>Privacidad:</b> si usas la IA, el texto (y la foto, si haces una) de cada comida se envía al proveedor elegido con tu clave. La clave se queda solo en este dispositivo y no va en la copia de seguridad salvo que lo marques.</Text></div>
+            <Text>Coste aproximado: {prov.coste}.</Text>
+          </Block>
+        </div>
+        <div style={{ order: 3 }}><BackupPanel /></div>
+        <div style={{ order: 4 }}><LinksPanel /></div>
+        <div style={{ order: 5 }}><PrivacyPanel /></div>
+      </div>
+    </div>
+  );
+}

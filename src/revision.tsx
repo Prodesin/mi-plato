@@ -1,10 +1,11 @@
 /* Hoja «Revisa lo que has comido»: cantidades editables, correcciones en vivo, toma, glucosa, nota y favorito. */
-import { useMemo, useState } from "preact/hooks";
+import { useMemo, useRef, useState } from "preact/hooks";
 import { Barra } from "./charts";
 import { corregirComida, objetivoToma } from "./coach";
 import { type Datos, type Draft, itemDe } from "./data";
 import { BuscadorAlimento, FormAlimento, FUENTE_TXT, IG_TXT } from "./forms";
 import { Button, Input, Segmented, useGrokTheme, toast } from "./kit";
+import { racionLabel } from "./foods";
 import { calcGramos } from "./parser";
 import type { Accion, Correccion, Food, Item, Toma } from "./types";
 import { TOMAS, itemTotales, sumar, tomaPorHora } from "./types";
@@ -24,12 +25,6 @@ export function Corr({ c, onAplicar }: { c: Correccion; onAplicar?: (a: Accion) 
       </span>
     </li>
   );
-}
-
-function pasoDe(it: Item, f?: Food): number {
-  const r = f?.rac[0]?.g;
-  if (r) return r <= 100 ? Math.round(r) : r <= 250 ? 25 : 50;
-  return Math.max(5, Math.round(it.g / 4 / 5) * 5);
 }
 
 export function Revision({ draft, setDraft, datos, onSave, onCancel, onDelete }: {
@@ -201,43 +196,65 @@ export function Revision({ draft, setDraft, datos, onSave, onCancel, onDelete }:
   );
 }
 
+/** Gramos de una «ración» para el selector: la casera del alimento; si no hay, lo que traía el alimento al apuntarlo (o 100 g). */
+function unidadDe(f: Food | undefined, g0: number): number {
+  const r = f?.rac[0]?.g;
+  if (!r || r <= 0) return Math.max(10, Math.round(g0 / 5) * 5) || 100;
+  // cantidad inicial poco redonda y cerca de 1 ración (p. ej. una tostada de 35 g con rebanada de 30 g): esa cantidad es «1 ración»
+  const n0 = g0 / r;
+  const cerca = Math.max(0.5, Math.round(n0 * 2) / 2);
+  return n0 <= 1.5 && Math.abs(n0 - cerca) >= 0.06 ? g0 / cerca : r;
+}
+const CHIPS = [0.5, 1, 2, 3];
+
 function ItemRow({ it, catalogo, onQuitar, onChangeG, onUsarBase }: { it: Item; catalogo: Map<string, Food>; onQuitar: () => void; onChangeG: (g: number) => void; onUsarBase: () => void }) {
   const [abierto, setAbierto] = useState(false);
   const f = it.foodId ? catalogo.get(it.foodId) : undefined;
+  const g0 = useRef(it.g);
+  const unidad = unidadDe(f, g0.current);
   const t = itemTotales(it);
-  const paso = pasoDe(it, f);
+  const n = it.g / unidad;
+  const enRejilla = Math.abs(n - Math.round(n * 2) / 2) < 0.06;
+  const nRej = Math.round(n * 2) / 2;
+  const etiqueta = enRejilla && nRej > 0 ? racionLabel(f, nRej) : `≈ ${racionLabel(f, Math.round(n * 10) / 10)}`;
+  const poner = (x: number) => onChangeG(x * unidad);
+  const entero = Math.abs(n - Math.round(n)) < 0.06;
+  const menos = () => poner(n > 1.06 ? Math.max(1, entero ? Math.round(n) - 1 : Math.floor(n)) : 0.5);
+  const mas = () => poner(n < 0.94 ? (n < 0.44 ? 0.5 : 1) : Math.floor(n + 0.06) + 1);
 
   return (
     <li class="item-row">
       <div class="item-row__top">
-        <div class="item-row__name" onClick={() => setAbierto(!abierto)} role="button" tabIndex={0} style={{ cursor: "pointer", flex: 1 }}>
+        <button type="button" class="item-row__name" aria-expanded={abierto} onClick={() => setAbierto(!abierto)}>
           <b>{it.nombre}</b>
+        </button>
+        <button type="button" class="icon-btn small" aria-label={`Quitar ${it.nombre}`} onClick={onQuitar}>×</button>
+      </div>
+      <div class="rac" role="group" aria-label={`Ración de ${it.nombre}`}>
+        <div class="rac__step">
+          <button type="button" class="rac__b" aria-label="Una ración menos" onClick={menos}>−</button>
+          <span class="rac__txt" aria-live="polite">{etiqueta}</span>
+          <button type="button" class="rac__b" aria-label="Una ración más" onClick={mas}>+</button>
         </div>
-        <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-          <button type="button" class="qty__b small-qty" onClick={() => onChangeG(Math.max(0, it.g - paso))}>−</button>
-          <span style={{ minWidth: "44px", textAlign: "center", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{fmt(it.g)}g</span>
-          <button type="button" class="qty__b small-qty" onClick={() => onChangeG(it.g + paso)}>+</button>
-          <button type="button" class="icon-btn" aria-label={`Quitar ${it.nombre}`} onClick={onQuitar}>×</button>
+        <div class="rac__chips">
+          {CHIPS.map((c) => (
+            <button type="button" key={c} class={`rac__chip${enRejilla && nRej === c ? " on" : ""}`} aria-pressed={enRejilla && nRej === c} aria-label={`${c === 0.5 ? "Media" : c} ${c === 1 ? "ración" : "raciones"}`} onClick={() => poner(c)}>{c === 0.5 ? "½" : c}</button>
+          ))}
         </div>
       </div>
       {abierto ? (
-        <div class="item-row__details" style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div class="item-row__details">
           <div class="chips">
             <span class={`chip src-${it.fuente}`}>{FUENTE_TXT[it.fuente] ?? it.fuente}</span>
             {it.conf ? <span class={`chip conf-${it.conf}`}>confianza {it.conf}</span> : null}
             <span class="chip">el azúcar sube {IG_TXT[it.ig]}</span>
+            {it.fiEst ? <span class="chip">fibra estimada</span> : null}
           </div>
           <div class="qty">
-            <button type="button" class="qty__b" onClick={() => onChangeG(Math.max(0, it.g - paso))}>−</button>
-            <label class="qty__in"><input inputMode="decimal" value={String(Math.round(it.g * 10) / 10).replace(".", ",")} onInput={(e) => { const v = parseFloat((e.currentTarget as HTMLInputElement).value.replace(",", ".")); onChangeG(Number.isFinite(v) ? v : 0); }} /><span>g</span></label>
-            <button type="button" class="qty__b" onClick={() => onChangeG(it.g + paso)}>+</button>
-            <span class="qty__f">
-              <button type="button" onClick={() => onChangeG(it.g / 2)}>½</button>
-              <button type="button" onClick={() => onChangeG(it.g * 1.5)}>×1,5</button>
-              <button type="button" onClick={() => onChangeG(it.g * 2)}>×2</button>
-            </span>
+            <span class="qty__lbl">En gramos</span>
+            <label class="qty__in"><input inputMode="decimal" aria-label={`Gramos de ${it.nombre}`} value={String(Math.round(it.g * 10) / 10).replace(".", ",")} onInput={(e) => { const v = parseFloat((e.currentTarget as HTMLInputElement).value.replace(",", ".")); onChangeG(Number.isFinite(v) ? v : 0); }} /><span>g</span></label>
           </div>
-          <small class="item-row__fig">{ktxt(t.kcal)} · {fmt(t.p)} g proteína · {fmt(t.c)} g hidratos{f?.rac[0] ? ` · ración: ${f.rac[0].n} (${fmt(f.rac[0].g)} g)` : ""}</small>
+          <small class="item-row__fig">{ktxt(t.kcal)} · {fmt(t.p)} g proteína · {fmt(t.c)} g hidratos{f?.rac[0] ? ` · 1 ración = ${f.rac[0].n.replace(/^1 /, "")} (${fmt(f.rac[0].g)} g)` : ""}</small>
           {it.aviso ? <p class="item-row__warn">{it.aviso} {it.foodId ? <button type="button" class="link-btn" onClick={onUsarBase}>Usar el valor de la base</button> : null}</p> : null}
           {it.nota ? <small class="item-row__fig">Nota: {it.nota}</small> : null}
         </div>
@@ -245,4 +262,3 @@ function ItemRow({ it, catalogo, onQuitar, onChangeG, onUsarBase }: { it: Item; 
     </li>
   );
 }
-

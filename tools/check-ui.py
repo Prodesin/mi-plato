@@ -60,6 +60,9 @@ def run():
                 for t in TABS:
                     page.click(f"#tab-{t}"); page.wait_for_timeout(350)
                     overflow(t)
+                    if t == "hoy":
+                        if page.evaluate("getComputedStyle(document.querySelector('textarea[aria-label=\"¿Qué estás comiendo?\"]')).resize") != "none": fail(f"la caja de texto aún se puede redimensionar en {tag}{suf}")
+                        if page.evaluate("(() => { const e = document.querySelector('.apple-date'); const lh = parseFloat(getComputedStyle(e).lineHeight) || 20; return e.getBoundingClientRect().height > lh * 1.6 })()"): fail(f"la fecha de Hoy baja a dos líneas en {tag}{suf}")
                     if t == "hoy" or scheme == "light" or True:
                         page.screenshot(path=f"{OUT}/{tag}-{t}{suf}.png")
                 # revisión abierta con una comida analizada
@@ -67,6 +70,13 @@ def run():
                 page.fill("textarea", "dos huevos, una tostada de pan integral y café con leche")
                 page.click("text=Corregir mi comida"); page.wait_for_selector(".sheet"); page.wait_for_timeout(300)
                 overflow("revision")
+                # selector de raciones: visible, sin desbordar y con botones de al menos 44 px
+                if page.locator(".rac").count() < 3: fail(f"faltan selectores de raciones en {tag}{suf}")
+                bad = page.evaluate("""() => [...document.querySelectorAll('.sheet .rac, .sheet .rac *, .sheet .item-row__top *')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.right > innerWidth + 0.5 || r.left < -0.5) }).slice(0,3).map(e => e.className)""")
+                if bad: fail(f"el selector de raciones se sale de la pantalla en {tag}{suf}: {bad}")
+                chicos = page.evaluate("""() => [...document.querySelectorAll('.sheet .rac__b, .sheet .rac__chip')].filter(e => { const r = e.getBoundingClientRect(); return r.width < 43.5 || r.height < 43.5 }).length""")
+                if chicos: fail(f"{chicos} botones de ración de menos de 44 px en {tag}{suf}")
+                if page.evaluate("(() => { const e = document.querySelector('.sheet__scroll'); return e.scrollWidth > e.clientWidth + 1 })()"): fail(f"la hoja de revisión desborda en horizontal en {tag}{suf}")
                 page.screenshot(path=f"{OUT}/{tag}-revision{suf}.png")
                 # girar/plegar sin perder la revisión: cambia el tamaño y comprueba que sigue abierta con el texto
                 page.set_viewport_size({"width": h, "height": w}); page.wait_for_timeout(250)
@@ -93,20 +103,35 @@ def run():
             if esperado not in txt: fail(f"el análisis no incluye {esperado}")
         if not page.query_selector(".corr"): fail("no hay correcciones en la revisión")
         n0 = page.locator(".item-row").count()
-        # cambiar gramos: botón ×2 sobre el primer alimento y comprobar que las cifras se recalculan
+        # raciones fáciles: chip «2» sobre el primer alimento («Huevo») y comprobar que se recalcula con ración casera
         before = page.inner_text(".k-metrics.tight")
-        page.locator(".item-row__name").first.click(); page.wait_for_timeout(100)  # el detalle se abre al tocar
-        page.locator(".qty__f button", has_text="×2").first.click(); page.wait_for_timeout(150)
+        fila = page.locator(".item-row").first
+        if "huevo" not in fila.locator(".rac__txt").inner_text().lower(): fail("la ración del huevo debería decir huevo(s): " + fila.locator(".rac__txt").inner_text())
+        fila.locator(".rac__chip", has_text="3").click(); page.wait_for_timeout(150)
         after = page.inner_text(".k-metrics.tight")
-        if before == after: fail("las cifras no se recalculan al cambiar la cantidad")
-        page.locator(".qty__f button", has_text="½").first.click(); page.wait_for_timeout(100)
+        if before == after: fail("las cifras no se recalculan al cambiar la ración")
+        if not fila.locator(".rac__txt").inner_text().startswith("3 huevos"): fail("tras el chip 3 debe poner «3 huevos»: " + fila.locator(".rac__txt").inner_text())
+        fila.locator(".rac__b", has_text="−").click(); page.wait_for_timeout(100)
+        if not fila.locator(".rac__txt").inner_text().startswith("2 huevos"): fail("tras «−» debe poner «2 huevos»: " + fila.locator(".rac__txt").inner_text())
+        fila.locator(".rac__b", has_text="+").click(); page.wait_for_timeout(100)
+        if not fila.locator(".rac__txt").inner_text().startswith("3 huevos"): fail("tras «+» debe poner «3 huevos»")
+        fila.locator(".rac__chip", has_text="½").click(); page.wait_for_timeout(100)
+        if not fila.locator(".rac__txt").inner_text().startswith("½ huevo"): fail("el chip ½ debe poner «½ huevo»: " + fila.locator(".rac__txt").inner_text())
+        # los gramos siguen como opción avanzada dentro del detalle
+        fila.locator(".item-row__name").click(); page.wait_for_timeout(100)
+        gin = fila.locator(".qty__in input")
+        if gin.count() != 1 or gin.input_value() != "30": fail("el detalle debe tener los gramos editables (½ huevo = 30 g)")
+        gin.fill("120"); page.wait_for_timeout(100)
+        if not fila.locator(".rac__txt").inner_text().startswith("2 huevos"): fail("al cambiar los gramos a 120 debe verse «2 huevos»")
         page.click(".sheet__foot .k-btn--primary"); page.wait_for_timeout(300)
         if page.query_selector(".sheet"): fail("la revisión no se cierra al guardar")
         if "Café con leche" not in meals_txt(page): fail("la comida guardada no aparece en Hoy")
         if page.input_value("textarea") != "": fail("el texto debería vaciarse al guardar")
         page.fill("textarea", "un plato de lentejas")
         page.click("text=Corregir mi comida"); page.wait_for_selector(".sheet")
-        if "300" not in page.inner_text(".item-row"): fail("«un plato de lentejas» debería ser 300 g")
+        if not page.locator(".rac__txt").first.inner_text().startswith("1 plato"): fail("«un plato de lentejas» debería verse como «1 plato…»")
+        page.locator(".item-row__name").first.click(); page.wait_for_timeout(100)
+        if page.locator(".qty__in input").first.input_value() != "300": fail("«un plato de lentejas» debería ser 300 g en el detalle")
         page.click(".sheet__foot .k-btn--primary"); page.wait_for_timeout(300)
         page.screenshot(path=f"{OUT}/iphone-390x844-hoy-funcional.png", full_page=True)
         page.reload(); page.wait_for_selector(".meals")

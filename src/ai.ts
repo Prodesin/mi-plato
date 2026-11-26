@@ -1,10 +1,10 @@
 /* Capa de IA opcional (clave propia de Jorge, llamadas directas desde el navegador).
  * La clave solo vive en este dispositivo. La IA da una PRIMERA estimación: siempre se revisa a mano antes de guardar. */
 import { buscarAlimento } from "./parser";
-import { topFrecuentes, totalesDia, REPARTO } from "./coach";
+import { agruparTomas, topFrecuentes, totalesDia, REPARTO } from "./coach";
 import type { Food, IG, Item, Meal, Perfil, Proveedor, Toma } from "./types";
 import { itemTotales, sumar, tomaLabel } from "./types";
-import { fmt, uid } from "./util";
+import { estimarFibra, fmt, uid } from "./util";
 
 export type ProvInfo = { id: Proveedor; nombre: string; defecto: string; claveUrl: string; coste: string; nota: string };
 export const PROVEEDORES: ProvInfo[] = [
@@ -45,11 +45,11 @@ REPARTO ORIENTATIVO POR TOMA: ${reparto}.
 HOY LLEVA: ${fmt(tot.kcal)} kcal, ${fmt(tot.p)} g de proteína, ${fmt(tot.c)} g de hidratos, ${fmt(tot.fi)} g de fibra. LE QUEDAN: ${fmt(resto.kcal)} kcal y ${fmt(resto.p)} g de proteína. Toma actual: ${tomaLabel(c.toma).toLowerCase()} (${c.hora}).
 ALIMENTOS QUE COME HABITUALMENTE (top 30 de su historial): ${frec.length ? frec.join(", ") : "todavía no hay historial"}.
 
-CÓMO ESTIMAR: usa raciones españolas reales (1 huevo ≈ 60 g, 1 rebanada de pan ≈ 30 g, 1 plato de lentejas ≈ 300 g cocinadas, 1 lata de atún ≈ 52 g escurrido, 1 vaso = 200 ml, 1 cucharada de aceite ≈ 10 g). No subestimes el aceite ni las salsas: si el plato suele llevarlos, inclúyelos como un item aparte o avisa en la nota. Valores nutricionales por la cantidad indicada (no por 100 g). Si dudas, marca confianza «baja».
+CÓMO ESTIMAR: usa raciones españolas reales (1 huevo ≈ 60 g, 1 rebanada de pan ≈ 30 g, 1 plato de lentejas ≈ 300 g cocinadas, 1 lata de atún ≈ 52 g escurrido, 1 vaso = 200 ml, 1 cucharada de aceite ≈ 10 g). No subestimes el aceite ni las salsas: si el plato suele llevarlos, inclúyelos como un item aparte o avisa en la nota. Valores nutricionales por la cantidad indicada (no por 100 g). Si dudas, marca confianza «baja». FIBRA: nunca pongas 0 por defecto; si no la sabes, estímala con lo que lleve (verdura, fruta, legumbre, integral, patata con piel…) o pon null. Un 0 solo es válido en carne, pescado, huevos, lácteos, aceites y bebidas.
 CORRECCIONES: máximo 4, la más importante primero, concretas (qué añadir, quitar o cambiar y cuánto) y cada una con su porqué en una frase sencilla. Usa tipo «ok» cuando algo está bien.
 
 Responde SOLO con un JSON válido, sin texto fuera de él, con exactamente esta forma:
-{"items":[{"nombre":str,"gramos":num,"kcal":num,"proteina":num,"hidratos":num,"azucares":num,"fibra":num,"grasa":num,"ig":"bajo|medio|alto","confianza":"alta|media|baja","nota":str opcional}],"correcciones":[{"tipo":"ok|aviso|alerta","texto":str}],"resumen":str}
+{"items":[{"nombre":str,"gramos":num,"kcal":num,"proteina":num,"hidratos":num,"azucares":num,"fibra":num o null,"grasa":num,"ig":"bajo|medio|alto","confianza":"alta|media|baja","nota":str opcional}],"correcciones":[{"tipo":"ok|aviso|alerta","texto":str}],"resumen":str}
 En «ig» indica cuánto sube el azúcar en sangre (bajo = poco, medio = algo, alto = mucho). «resumen» es una frase corta y amable.`;
 }
 
@@ -147,7 +147,7 @@ export async function probarConexion(cfg: Cfg): Promise<void> {
 }
 
 /* ---------------- Validación del esquema ---------------- */
-export type IAItem = { nombre: string; gramos: number; kcal: number; proteina: number; hidratos: number; azucares: number; fibra: number; grasa: number; ig: IG; confianza: "alta" | "media" | "baja"; nota?: string };
+export type IAItem = { nombre: string; gramos: number; kcal: number; proteina: number; hidratos: number; azucares: number; fibra: number; fibraEst?: boolean; grasa: number; ig: IG; confianza: "alta" | "media" | "baja"; nota?: string };
 export type IACorr = { tipo: "ok" | "aviso" | "alerta"; texto: string };
 export type IAResultado = { items: IAItem[]; correcciones: IACorr[]; resumen: string };
 
@@ -169,10 +169,14 @@ export function validarRespuesta(txt: string, permitirVacio = false): IAResultad
   if (!o || typeof o !== "object" || !Array.isArray(o.items) || !Array.isArray(o.correcciones) || typeof o.resumen !== "string") throw new ErrorIA("La IA no ha devuelto un formato que entienda.");
   const items: IAItem[] = [];
   for (const x of o.items) {
-    const gramos = num(x?.gramos), kcal = num(x?.kcal), p = num(x?.proteina), h = num(x?.hidratos), az = num(x?.azucares), fi = num(x?.fibra), gr = num(x?.grasa);
-    if (typeof x?.nombre !== "string" || !x.nombre.trim() || gramos == null || gramos <= 0 || kcal == null || p == null || h == null || az == null || fi == null || gr == null) throw new ErrorIA("La IA ha devuelto datos incompletos.");
+    const gramos = num(x?.gramos), kcal = num(x?.kcal), p = num(x?.proteina), h = num(x?.hidratos), az = num(x?.azucares), fi0 = num(x?.fibra), gr = num(x?.grasa);
+    if (typeof x?.nombre !== "string" || !x.nombre.trim() || gramos == null || gramos <= 0 || kcal == null || p == null || h == null || az == null || gr == null) throw new ErrorIA("La IA ha devuelto datos incompletos.");
     if (!["bajo", "medio", "alto"].includes(x.ig) || !["alta", "media", "baja"].includes(x.confianza)) throw new ErrorIA("La IA ha devuelto datos incompletos.");
-    items.push({ nombre: x.nombre.trim(), gramos, kcal, proteina: p, hidratos: h, azucares: Math.min(az, h), fibra: Math.min(fi, h), grasa: gr, ig: x.ig, confianza: x.confianza, nota: typeof x.nota === "string" ? x.nota : undefined });
+    // fibra desconocida (falta, null o un 0 que no cuadra con tantos hidratos que no son azúcar): se estima y se marca, sin sumar un 0 engañoso
+    const azc = Math.min(az, h);
+    const fiDesconocida = fi0 == null || (fi0 === 0 && h - azc >= 10);
+    const fi = fiDesconocida ? estimarFibra(h / gramos * 100, azc / gramos * 100) * gramos / 100 : Math.min(fi0, h);
+    items.push({ nombre: x.nombre.trim(), gramos, kcal, proteina: p, hidratos: h, azucares: azc, fibra: fi, fibraEst: fiDesconocida && h >= 5 ? true : undefined, grasa: gr, ig: x.ig, confianza: x.confianza, nota: typeof x.nota === "string" ? x.nota : undefined });
   }
   if (!items.length && !permitirVacio) throw new ErrorIA("La IA no ha reconocido ningún alimento.");
   const correcciones: IACorr[] = [];
@@ -190,7 +194,7 @@ export function itemsDeIA(r: IAResultado, catalogo: Food[]): Item[] {
     const it: Item = {
       id: uid(), foodId: null, nombre: x.nombre, g: Math.round(x.gramos),
       por100: { kcal: x.kcal * k, p: x.proteina * k, c: x.hidratos * k, az: x.azucares * k, fi: x.fibra * k, gr: x.grasa * k },
-      ig: x.ig, cat: "otro", fuente: "ia", conf: x.confianza, nota: x.nota,
+      ig: x.ig, cat: "otro", fuente: "ia", conf: x.confianza, nota: x.nota, fiEst: x.fibraEst,
     };
     const b = buscarAlimento(x.nombre, catalogo);
     if (b && b.score >= 0.8) {
@@ -236,7 +240,8 @@ export async function revisionConIA(cfg: Cfg, ctx: CtxIA, resumen: string): Prom
 }
 
 export function resumenTexto(meals: Meal[]): string {
-  return meals.map((m) => {
+  const dias = [...new Set(meals.map((m) => m.fecha))].sort();
+  return dias.flatMap((f) => agruparTomas(meals.filter((m) => m.fecha === f))).map((m) => {
     const t = sumar(m.items);
     return `${m.fecha} ${m.hora} ${tomaLabel(m.toma)}: ${m.items.map((i) => `${i.nombre} ${Math.round(i.g)} g`).join(", ")} → ${fmt(t.kcal)} kcal, ${fmt(t.p)} g proteína, ${fmt(t.c)} g hidratos${m.glucDespues != null ? `, glucosa 2 h: ${m.glucDespues}` : ""}${m.nota ? ` (nota: ${m.nota})` : ""}`;
   }).join("\n");

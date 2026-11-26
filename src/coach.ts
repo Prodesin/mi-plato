@@ -23,6 +23,37 @@ export const COACH_IDS: string[] = [
 type Ctx = { perfil: Perfil; dia: Meal[]; frecuentes?: string[]; catalogo?: Catalogo };
 
 /* ------------------------------------------------------------------ */
+/* Tomas: apuntes cercanos = una sola comida                           */
+/* ------------------------------------------------------------------ */
+export const MARGEN_TOMA_MIN = 45;
+/** Una toma = uno o varios apuntes seguidos del mismo día (menos de 45 min entre ellos o de la misma toma). Es un dato derivado: no se guarda. */
+export type MealToma = Meal & { apuntes: Meal[] };
+export function agruparTomas(meals: Meal[]): MealToma[] {
+  const orden = [...meals].sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+  const grupos: Meal[][] = [];
+  for (const m of orden) {
+    const g = grupos[grupos.length - 1];
+    const ult = g?.[g.length - 1];
+    const junta = !!ult && ult.fecha === m.fecha && (minutos(m.hora) - minutos(ult.hora) < MARGEN_TOMA_MIN || (m.toma === ult.toma && m.toma !== "otro"));
+    if (junta) g.push(m); else grupos.push([m]);
+  }
+  return grupos.map((g) => {
+    if (g.length === 1) return { ...g[0], apuntes: g };
+    const glAntes = g.find((x) => x.glucAntes != null)?.glucAntes;
+    const glDesp = g.find((x) => x.glucDespues != null)?.glucDespues;
+    const notas = g.map((x) => x.nota).filter(Boolean).join(" · ");
+    return {
+      ...g[0],
+      texto: g.map((x) => x.texto).filter(Boolean).join(", "),
+      items: g.flatMap((x) => x.items),
+      glucAntes: glAntes, glucDespues: glDesp, nota: notas || undefined,
+      iaCorr: g.flatMap((x) => x.iaCorr ?? []),
+      apuntes: g,
+    };
+  });
+}
+
+/* ------------------------------------------------------------------ */
 /* Objetivos por toma                                                  */
 /* ------------------------------------------------------------------ */
 export const REPARTO: Record<Toma, { p: number; frac: number }> = {
@@ -53,7 +84,7 @@ function por100(f: Food) {
 }
 /** Crea un Item a partir de un alimento y unos gramos. */
 export function itemDeAlimento(f: Food, gr: number, id: string): Item {
-  return { id, foodId: f.id, nombre: f.n, g: Math.round(gr), por100: por100(f), ig: f.ig, cat: f.cat, fuente: f.fuente, def: false };
+  return { id, foodId: f.id, nombre: f.n, g: Math.round(gr), por100: por100(f), ig: f.ig, cat: f.cat, fuente: f.fuente, def: false, fiEst: f.fiEst };
 }
 
 /** Racionaliza gramos de un alimento a algo que se pueda medir en casa (½ ración, 1, 1½...). */
@@ -367,12 +398,14 @@ export function corregirComida(meal: { items: Item[]; toma: Toma; hora: string }
 
 const PROT_DEFECTO: Record<Toma, string[]> = {
   desayuno: ["huevo", "yogur-de-proteinas", "queso-fresco-batido-0", "pechuga-de-pavo-en-lonchas", "jamon-cocido", "leche-semidesnatada"],
-  comida: ["huevo", "atun-al-natural", "pechuga-de-pollo-a-la-plancha", "garbanzos-cocidos", "lentejas-cocidas", "queso-fresco-batido-0"],
+  comida: ["huevo", "atun-al-natural", "pechuga-de-pollo-a-la-plancha", "pechuga-de-pavo-en-lonchas", "queso-fresco-batido-0", "yogur-de-proteinas"],
   merienda: ["yogur-de-proteinas", "queso-fresco-batido-0", "pechuga-de-pavo-en-lonchas", "atun-al-natural", "huevo"],
   cena: ["huevo", "atun-al-natural", "pechuga-de-pollo-a-la-plancha", "queso-fresco-batido-0", "pechuga-de-pavo-en-lonchas", "yogur-de-proteinas"],
   otro: ["yogur-de-proteinas", "queso-fresco-batido-0", "huevo"],
 };
-const ES_PROTEINA = new Set(["carne", "pescado", "huevo", "embutido", "lacteo", "legumbre", "suplemento"]);
+// La legumbre (garbanzos, lentejas…) NO se propone para subir proteína: haría falta mucha cantidad y muchos hidratos.
+const ES_PROTEINA = new Set(["carne", "pescado", "huevo", "embutido", "lacteo", "suplemento"]);
+const PROT_NO = /garbanz|lenteja|alubia|judia|legumbre|hummus|soja/i;
 
 function candidatosProteina(toma: Toma, items: Item[], deficit: number, kcalAct: number, kcalObj: number, frec: Set<string>, cat?: Catalogo) {
   const ya = new Set(items.map((i) => i.foodId));
@@ -380,12 +413,12 @@ function candidatosProteina(toma: Toma, items: Item[], deficit: number, kcalAct:
   // lo que Jorge ya come y es rico en proteína va primero
   for (const id of frec) {
     const f = getFood(id, cat);
-    if (f && ES_PROTEINA.has(f.cat) && f.p >= 10 && f.c < 10 && f.kcal < 260 && !ids.includes(id)) ids.unshift(id);
+    if (f && ES_PROTEINA.has(f.cat) && !PROT_NO.test(f.id) && f.p >= 10 && f.c < 10 && f.kcal < 260 && !ids.includes(id)) ids.unshift(id);
   }
   const res: { food: Food; g: number; p: number; score: number }[] = [];
   for (const id of ids) {
     const f = getFood(id, cat);
-    if (!f || ya.has(f.id)) continue;
+    if (!f || ya.has(f.id) || f.cat === "legumbre" || PROT_NO.test(f.id)) continue;
     const r = f.rac[0]?.g ?? 100;
     const necesario = (deficit / Math.max(f.p, 1)) * 100;
     const maxRac = f.id === "atun-al-natural" ? 1 : 2;
@@ -460,11 +493,10 @@ const PLATOS: Plato[] = [
   { titulo: "Tortilla de 2 huevos con ensalada", tomas: ["comida", "cena"], clave: "huevo", items: [["tortilla-francesa", 120], ["ensalada-mixta", 200], ["aceite-de-oliva", 5]] },
   { titulo: "Una lata de atún con tomate, un huevo cocido y un poco de pan integral", tomas: ["comida", "cena"], clave: "atun", items: [["atun-al-natural", 52], ["huevo", 60], ["tomate", 200], ["pan-integral", 30], ["aceite-de-oliva", 5]] },
   { titulo: "Pechuga de pollo a la plancha con verdura", tomas: ["comida", "cena"], clave: "pollo", items: [["pechuga-de-pollo-a-la-plancha", 150], ["verdura-variada", 250], ["aceite-de-oliva", 5]] },
-  { titulo: "Lentejas de bote con verdura y un huevo", tomas: ["comida", "cena"], clave: "lentejas", items: [["lentejas-cocidas", 250], ["verdura-variada", 150], ["huevo", 60]] },
+  { titulo: "Dos huevos con verdura y un poco de lentejas de bote", tomas: ["comida", "cena"], clave: "huevo", items: [["lentejas-cocidas", 120], ["verdura-variada", 150], ["huevo", 120]] },
   { titulo: "Merluza a la plancha con ensalada y una patata cocida", tomas: ["comida", "cena"], clave: "merluza", items: [["merluza-a-la-plancha", 180], ["ensalada-mixta", 200], ["patata-cocida", 150], ["aceite-de-oliva", 5]] },
   { titulo: "Pavo en lonchas con queso fresco y ensalada", tomas: ["cena", "comida"], clave: "pavo", items: [["pechuga-de-pavo-en-lonchas", 100], ["queso-fresco-batido-0", 100], ["ensalada-mixta", 200], ["pan-integral", 30]] },
   { titulo: "Sardinas de lata con tomate y pan integral", tomas: ["comida", "cena"], clave: "sardinas", items: [["sardinas-en-lata", 65], ["tomate", 200], ["pan-integral", 30]] },
-  { titulo: "Garbanzos de bote con espinacas y un huevo", tomas: ["comida", "cena"], clave: "garbanzos", items: [["garbanzos-cocidos", 200], ["espinacas", 150], ["huevo", 60], ["aceite-de-oliva", 5]] },
   { titulo: "Ternera a la plancha con ensalada", tomas: ["comida", "cena"], clave: "ternera", items: [["ternera-a-la-plancha", 150], ["ensalada-mixta", 200], ["aceite-de-oliva", 5]] },
   { titulo: "Salmón a la plancha con verdura", tomas: ["comida", "cena"], clave: "salmon", items: [["salmon-a-la-plancha", 150], ["verdura-variada", 200]] },
   { titulo: "Yogur de proteínas con una fruta", tomas: ["cena", "merienda"], clave: "yogur-de-proteinas", items: [["yogur-de-proteinas", 160], ["pieza-de-fruta", 150]] },
@@ -601,7 +633,7 @@ export function revisionSemana(inicio: string, meals: Meal[], perfil: Perfil): S
 
   const errores: Error[] = [];
   const bien: string[] = [];
-  const all = dias.flatMap((d) => d.meals);
+  const all: Meal[] = dias.flatMap((d) => agruparTomas(d.meals)); // por toma, no por apunte
   const porToma = (t: Toma) => all.filter((m) => m.toma === t);
   const sumM = (m: Meal) => sumar(m.items);
 

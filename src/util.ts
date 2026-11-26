@@ -86,3 +86,15 @@ export function stem(w: string): string {
 export function capital(s: string): string {
   return s ? s[0].toUpperCase() + s.slice(1) : s;
 }
+
+/** Fibra aproximada (g por 100 g) cuando la fuente no la da: ~10 % de los hidratos que no son azúcar. Nunca devuelve un 0 engañoso si hay almidón. */
+export function estimarFibra(hidratos: number, azucares: number): number {
+  const almidon = Math.max(0, hidratos - azucares);
+  return Math.round(Math.min(hidratos, almidon * 0.1 + azucares * 0.02) * 10) / 10;
+}
+
+/** Fecha abreviada para espacios estrechos: «mié 26 nov». */
+export function fechaMedia(s: string): string {
+  const d = parseIso(s);
+  return `${DIAS[dowIndex(s)].slice(0, 3)} ${d.getDate()} ${MESES[d.getMonth()].slice(0, 3)}`;
+}

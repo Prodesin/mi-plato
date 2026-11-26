@@ -112,7 +112,7 @@ export const FOODS: Food[] = [
   F("Sepia o chipirones a la plancha", "pescado", 81, 16, 1, 0, 0, 1.5, "bajo", "sepia|chipirones|chopitos|jibia|calamar a la plancha", "1 ración:150"),
   F("Pulpo á feira", "plato", 120, 14, 6, 0.5, 0.8, 4.5, "medio", "pulpo|pulpo a feira|pulpo a la gallega|pulpo con patatas|pulpo cocido", "1 ración:200|1 plato:200"),
   F("Palitos de merluza empanados", "plato", 207, 10, 17, 1, 1, 11, "medio", "palitos de merluza|varitas de merluza|pescado rebozado|pescado empanado|merluza rebozada|merluza empanada", "1 palito:25|1 ración:125"),
-  F("Surimi", "pescado", 85, 8, 12, 5, 0, 0.5, "medio", "palitos de cangrejo|barritas de surimi|palitos de surimi|surimi", "1 palito:15|1 ración:80"),
+  F("Surimi", "pescado", 85, 8, 12, 5, 0.3, 0.5, "medio", "palitos de cangrejo|barritas de surimi|palitos de surimi|surimi", "1 palito:15|1 ración:80"),
   // ---- Legumbres ----
   F("Lentejas cocidas", "legumbre", 116, 9, 20, 1, 7.9, 0.4, "bajo", "lentejas|lenteja|lentejas de bote|bote de lentejas|lentejas hervidas|lentejas pardinas", "1 plato:300|1 ración:200|1 bote:240"),
   F("Lentejas estofadas", "plato", 132, 8, 15, 1.5, 5, 4.5, "bajo", "lentejas estofadas|lentejas con chorizo|lentejas guisadas|lentejas de la abuela|lentejas con verduras|lentejas con arroz", "1 plato:300"),
@@ -138,7 +138,7 @@ export const FOODS: Food[] = [
   F("Tortitas de maíz", "pan", 383, 8, 80, 0.5, 4, 3.5, "alto", "tortita de maiz|tortitas de maiz|tortitas|tortita", "1 tortita:8"),
   F("Cruasán", "bolleria", 410, 8, 45, 8, 2, 22, "alto", "croissant|cruasan|croasan|cruasan plano", "1 cruasán:60"),
   F("Napolitana de chocolate", "bolleria", 419, 7, 46, 16, 2, 23, "alto", "napolitana|palmera de chocolate|napolitana de chocolate|pan de chocolate", "1 napolitana:75"),
-  F("Magdalena", "bolleria", 421, 6, 52, 28, 1, 21, "alto", "magdalenas|magdalena|madalena|mantecada|bollo|bollito", "1 magdalena:35"),
+  F("Magdalena", "bolleria", 421, 6, 52, 28, 1.4, 21, "alto", "magdalenas|magdalena|madalena|mantecada|bollo|bollito", "1 magdalena:35"),
   F("Donut", "bolleria", 419, 5, 48, 22, 1.5, 23, "alto", "donuts|donut|rosquilla|berlina|dona", "1 donut:60"),
   F("Churros", "bolleria", 380, 5, 45, 8, 1.5, 20, "alto", "churro|churros con chocolate|porras|porra", "1 churro:40|1 ración:120"),
   F("Galletas María", "bolleria", 423, 7, 74, 22, 3, 11, "alto", "galletas maria|galleta maria|galletas|galleta|galletas tostadas|galletas de desayuno|marias", "1 galleta:6|1 ración:30"),
@@ -148,17 +148,17 @@ export const FOODS: Food[] = [
   F("Muesli", "cereal", 351, 10, 62, 12, 8, 7, "medio", "muesli|granola|cereales integrales|cereales de avena", "1 bol:50"),
   F("Copos de avena", "cereal", 355, 13, 60, 1, 10, 7, "bajo", "avena|copos de avena|harina de avena|avena en copos", "1 cucharada:10|1 ración:40|1 bol:40"),
   F("Gachas de avena con leche", "cereal", 90, 4, 13, 3, 1.5, 2.5, "bajo", "gachas|porridge|gachas de avena|papilla de avena", "1 bol:250"),
-  F("Arroz blanco cocido", "arroz", 126, 2.7, 28, 0.1, 0.4, 0.3, "alto", "arroz|arroz blanco|arroz hervido|arroz cocido|arroz basmati|arroz largo", "1 ración:150|1 plato:200"),
+  F("Arroz blanco cocido", "arroz", 126, 2.7, 28, 0.1, 0.6, 0.3, "alto", "arroz|arroz blanco|arroz hervido|arroz cocido|arroz basmati|arroz largo", "1 ración:150|1 plato:200"),
   F("Arroz integral cocido", "arroz", 120, 2.7, 25, 0.3, 1.8, 1, "medio", "arroz integral|arroz integral cocido", "1 ración:150|1 plato:200"),
   F("Arroz con tomate", "arroz", 149, 3, 27, 2, 1.2, 3.2, "alto", "arroz con tomate|arroz con tomate y huevo|arroz a la cubana|arroz frito", "1 plato:250"),
-  F("Arroz con pollo", "plato", 156, 9, 20, 1, 1, 4.5, "alto", "arroz con pollo|arroz con carne|arroz con conejo", "1 plato:350|1 ración:300"),
-  F("Paella", "plato", 149, 7, 20, 1, 1, 4.5, "alto", "paella|paella mixta|paella valenciana|arroz con marisco|arroz caldoso|arroz negro|paella de marisco", "1 plato:350|1 ración:300"),
+  F("Arroz con pollo", "plato", 156, 9, 20, 1, 1.3, 4.5, "alto", "arroz con pollo|arroz con carne|arroz con conejo", "1 plato:350|1 ración:300"),
+  F("Paella", "plato", 149, 7, 20, 1, 1.3, 4.5, "alto", "paella|paella mixta|paella valenciana|arroz con marisco|arroz caldoso|arroz negro|paella de marisco", "1 plato:350|1 ración:300"),
   F("Arroz tres delicias", "arroz", 160, 5, 26, 1.5, 1.5, 4, "alto", "arroz tres delicias|arroz chino|arroz frito chino", "1 plato:300"),
   F("Pasta cocida", "pasta", 155, 5.8, 31, 1, 2, 0.9, "medio", "pasta|macarrones|espaguetis|espaguetti|fideos|tallarines|pasta hervida|spaguetti|penne|tirabuzones|pasta blanca|macarron|espagueti", "1 plato:220|1 ración:180"),
   F("Pasta integral cocida", "pasta", 137, 5.5, 26, 1, 4, 1.2, "bajo", "pasta integral|macarrones integrales|espaguetis integrales|espagueti integral", "1 plato:220|1 ración:180"),
   F("Macarrones con tomate", "pasta", 147, 5, 25, 4, 2, 3, "medio", "macarrones con tomate|pasta con tomate|espaguetis con tomate|macarrones con tomate y queso|macarrones con queso", "1 plato:300"),
   F("Espaguetis a la boloñesa", "plato", 161, 8, 20, 3, 2, 5.5, "medio", "espaguetis boloñesa|pasta boloñesa|macarrones con carne|espaguetis a la bolonesa|pasta a la bolonesa|boloñesa|bolonesa|espaguetis con carne", "1 plato:300"),
-  F("Lasaña", "plato", 168, 9, 15, 3, 1, 8, "medio", "lasaña|lasana|canelones|canelon|lasaña de carne", "1 ración:300"),
+  F("Lasaña", "plato", 168, 9, 15, 3, 1.4, 8, "medio", "lasaña|lasana|canelones|canelon|lasaña de carne", "1 ración:300"),
   F("Ñoquis", "pasta", 148, 4, 32, 1, 1.5, 0.5, "alto", "noquis|ñoquis", "1 plato:250"),
   F("Cuscús cocido", "cereal", 109, 3.8, 23, 0.1, 1.4, 0.2, "medio", "cuscus|cous cous|cuscus cocido", "1 ración:150"),
   F("Quinoa cocida", "cereal", 119, 4.4, 21, 1, 2.8, 1.9, "bajo", "quinoa|quinua", "1 ración:150"),
@@ -166,19 +166,20 @@ export const FOODS: Food[] = [
   F("Patatas fritas caseras", "patata", 313, 3.5, 41, 0.5, 3.8, 15, "alto", "patatas fritas|patata frita|patatas fritas caseras|papas fritas|fritas|patatas de freidora|patatas de burguer|patatas fritas de freidora", "1 ración:150"),
   F("Patatas bravas", "plato", 189, 3, 24, 1, 2.5, 9, "alto", "bravas|patatas bravas|brava|patatas alioli|patatas con alioli|patatas con salsa brava", "1 ración:200|1 tapa:120"),
   F("Patatas fritas de bolsa", "snack", 539, 6, 50, 0.5, 4.5, 35, "alto", "patatas de bolsa|patatas chips|chips|patatillas|patatas fritas de bolsa|ganchitos|snacks|cheetos|doritos|ruffles|bolsa de patatas", "1 bolsa pequeña:40|1 puñado:25"),
+  F("Patatas panaderas", "patata", 112, 2, 17, 1, 2, 4.2, "alto", "patatas panaderas|patata panadera|panaderas|patatas a lo pobre|patatas al horno con aceite|patatas panadera|patatas panaderas mercadona|patatas panaderas eroski|patatas asadas con aceite|patatas al horno con cebolla", "1 ración:250|1 plato:300"),
   F("Boniato asado", "patata", 87, 1.6, 20, 6, 3, 0.1, "medio", "boniato|batata|boniato al horno|boniato cocido|camote", "1 boniato:200"),
-  F("Tortilla de patatas", "plato", 171, 6.5, 10.5, 1, 1.2, 11.5, "alto", "tortilla de patata|tortilla española|tortilla|pincho de tortilla|tortilla de patatas con cebolla|tortilla de patatas sin cebolla|tortilla con cebolla", "1 ración:150|1 pincho:120|1 porción:150"),
+  F("Tortilla de patatas", "plato", 171, 6.5, 10.5, 1, 1.4, 11.5, "alto", "tortilla de patata|tortilla española|tortilla|pincho de tortilla|tortilla de patatas con cebolla|tortilla de patatas sin cebolla|tortilla con cebolla", "1 ración:150|1 pincho:120|1 porción:150"),
   // ---- Platos y bocadillos ----
   F("Pizza", "plato", 258, 11, 32, 3, 2, 9.5, "alto", "pizza|pizza margarita|pizza de queso|pizza barbacoa|pizza cuatro quesos|pizza de jamon y queso|pizza congelada|pizza de pepperoni|pizza fresca", "1 pizza individual:350|1 porción:110"),
   F("Bocadillo de jamón", "plato", 268, 13, 36, 2, 2, 8, "alto", "bocadillo de jamon|bocata de jamon|bocadillo de jamon serrano|pulga de jamon|bocadillo de york|bocadillo jamon|bocadillo de jamon y queso|bocata jamon|bocata de jamon y queso|bocadillo de queso|bocadillo de pavo|bocadillo|bocata", "1 bocadillo:200|1 pulga:100"),
   F("Bocadillo de tortilla", "plato", 235, 8, 26, 1, 2, 11, "alto", "bocadillo de tortilla|bocata de tortilla|bocadillo de tortilla de patata|pincho de tortilla en pan", "1 bocadillo:230"),
   F("Bocadillo de lomo con queso", "plato", 288, 17, 28, 1, 1.5, 12, "alto", "bocadillo de lomo|bocata de lomo|bocadillo de lomo con queso|bocadillo de pollo|bocata de pollo|bocadillo de calamares|bocadillo de panceta", "1 bocadillo:220"),
   F("Sándwich mixto", "plato", 267, 13, 28, 3, 1.5, 11.5, "alto", "sandwich mixto|sandwich de jamon y queso|sandwich|sandwich de pavo|sandwich vegetal|tostada mixta|sandwich de york y queso|sandwich de jamon", "1 sándwich:130"),
-  F("Hamburguesa completa", "plato", 252, 13, 22, 4, 1.5, 12.5, "alto", "hamburguesa completa|hamburguesa con pan|hamburguesa de restaurante|hamburguesa de fast food|cheeseburger|big mac|whopper|hamburguesa con queso|hamburguesa con patatas", "1 hamburguesa:200"),
+  F("Hamburguesa completa", "plato", 252, 13, 22, 4, 1.8, 12.5, "alto", "hamburguesa completa|hamburguesa con pan|hamburguesa de restaurante|hamburguesa de fast food|cheeseburger|big mac|whopper|hamburguesa con queso|hamburguesa con patatas", "1 hamburguesa:200"),
   F("Empanada de atún", "plato", 252, 9, 26, 2, 1.5, 12.5, "medio", "empanada|empanada gallega|empanada de atun|empanada de carne|empanada de zamburiñas|empanada de bonito|empanada de pollo|empanada de xoubas|empanada de bacalao", "1 trozo:150"),
   F("Empanadilla frita", "plato", 297, 8, 28, 1, 1, 17, "alto", "empanadilla|empanadillas|empanadillas fritas|pastel de carne", "1 empanadilla:70"),
-  F("Croquetas", "plato", 221, 7, 19, 1.5, 0.8, 13, "alto", "croqueta|croquetas|croquetas de jamon|croquetas de pollo|croquetas caseras|croquetas de bacalao|croquetas de cocido", "1 croqueta:30|1 ración:150"),
-  F("Sushi", "plato", 150, 6, 28, 4, 0.5, 1.5, "alto", "sushi|maki|nigiri|sushi variado|sashimi con arroz|california roll", "1 pieza:30|1 ración:200"),
+  F("Croquetas", "plato", 221, 7, 19, 1.5, 1.0, 13, "alto", "croqueta|croquetas|croquetas de jamon|croquetas de pollo|croquetas caseras|croquetas de bacalao|croquetas de cocido", "1 croqueta:30|1 ración:150"),
+  F("Sushi", "plato", 150, 6, 28, 4, 0.8, 1.5, "alto", "sushi|maki|nigiri|sushi variado|sashimi con arroz|california roll", "1 pieza:30|1 ración:200"),
   F("Ensaladilla rusa", "plato", 189, 3.5, 9, 2, 1.5, 15.5, "medio", "ensaladilla|ensaladilla rusa|ensaladilla de atun", "1 ración:150|1 tapa:100"),
   F("Ensalada de pasta o arroz", "plato", 150, 5, 18, 2, 1.5, 6.5, "medio", "ensalada de pasta|ensalada de arroz|ensalada de arroz y atun|ensalada de pasta con atun|ensalada campera|ensalada de cuscus|ensalada de patata", "1 plato:250|1 bol:250"),
   F("Ensalada de legumbres", "plato", 120, 6, 14, 1.5, 4.5, 4.5, "bajo", "ensalada de garbanzos|ensalada de legumbres|ensalada de lentejas|ensalada de alubias|ensalada de judias", "1 plato:250|1 bol:250"),
@@ -225,15 +226,15 @@ export const FOODS: Food[] = [
   F("Naranja", "fruta", 44, 0.9, 9.5, 8.5, 2.2, 0.2, "bajo", "naranjas|naranja entera|gajos de naranja|pomelo|naranja de mesa", "1 naranja:150"),
   F("Mandarina", "fruta", 45, 0.7, 10, 9, 1.8, 0.2, "bajo", "mandarinas|clementinas|clementina|satsuma", "1 mandarina:80"),
   F("Plátano", "fruta", 88, 1.2, 20, 16, 2, 0.3, "medio", "platano|platanos|banana|bananas|platano de canarias", "1 plátano:120"),
-  F("Uvas", "fruta", 70, 0.7, 16.5, 15, 0.9, 0.2, "medio", "uva|racimo de uvas|uvas blancas|uvas negras", "1 racimo:150|1 puñado:80"),
+  F("Uvas", "fruta", 70, 0.7, 16.5, 15, 1.0, 0.2, "medio", "uva|racimo de uvas|uvas blancas|uvas negras", "1 racimo:150|1 puñado:80"),
   F("Fresas", "fruta", 30, 0.7, 6, 5, 2, 0.3, "bajo", "fresa|fresas|fresones|freson|fresas con nata", "1 bol:150|1 puñado:80"),
   F("Kiwi", "fruta", 49, 1, 10, 9, 2.5, 0.5, "bajo", "kiwis|kiwi verde|kiwi amarillo", "1 kiwi:80"),
   F("Melón", "fruta", 30, 0.8, 6.5, 6, 0.8, 0.1, "medio", "melon|melon piel de sapo|cantalupo|melon con jamon|tajada de melon", "1 tajada:200|1 ración:150"),
-  F("Sandía", "fruta", 31, 0.6, 7, 6, 0.4, 0.1, "alto", "sandia|tajada de sandia|sandias", "1 tajada:250"),
+  F("Sandía", "fruta", 31, 0.6, 7, 6, 0.5, 0.1, "alto", "sandia|tajada de sandia|sandias", "1 tajada:250"),
   F("Melocotón", "fruta", 39, 0.9, 8.5, 8, 1.5, 0.1, "bajo", "melocotones|melocoton|paraguayo|nectarina|durazno|nectarinas|paraguayos", "1 melocotón:150"),
   F("Albaricoque", "fruta", 40, 0.8, 8.5, 8, 2, 0.1, "bajo", "albaricoques|albaricoque|ciruela|ciruelas|damasco", "1 albaricoque:40|1 ciruela:50"),
   F("Cerezas", "fruta", 58, 1, 13, 11, 1.5, 0.2, "bajo", "cereza|cerezas|picotas|guindas", "1 puñado:80|1 ración:150"),
-  F("Piña", "fruta", 49, 0.5, 11.5, 10, 1.2, 0.1, "medio", "pina|rodaja de pina|pina natural|pina fresca", "1 rodaja:80|1 ración:150"),
+  F("Piña", "fruta", 49, 0.5, 11.5, 10, 1.4, 0.1, "medio", "pina|rodaja de pina|pina natural|pina fresca", "1 rodaja:80|1 ración:150"),
   F("Mango", "fruta", 63, 0.8, 14, 13, 1.8, 0.4, "medio", "mango|papaya|mangos", "1 mango:200|1 ración:150"),
   F("Frutos rojos", "fruta", 44, 0.7, 9.5, 7, 3, 0.3, "bajo", "arandanos|frambuesas|moras|frutos del bosque|frutos rojos|arandano|frambuesa|grosellas|mora", "1 puñado:80|1 bol:120"),
   F("Higos", "fruta", 66, 0.8, 15, 14, 2, 0.3, "medio", "higo|higos|brevas|breva", "1 higo:50"),
@@ -278,7 +279,7 @@ export const FOODS: Food[] = [
   // ---- Bebidas ----
   F("Agua", "bebida", 0, 0, 0, 0, 0, 0, "bajo", "agua con gas|agua mineral|soda|sifon|agua con limon|agua del grifo|agua natural|botella de agua|agua con burbujas|agua con gas y limon|seltzer|agua fria", "1 vaso:200|1 botella:500"),
   F("Café solo", "bebida", 2, 0.1, 0, 0, 0, 0, "bajo", "cafe|cafe solo|americano|cafe americano|expreso|espresso|cafe descafeinado|descafeinado|cafe con hielo|cafe solo sin azucar|cafe negro", "1 café:50|1 taza:150"),
-  F("Café con leche", "bebida", 25, 1.6, 2.4, 2.4, 0, 1, "bajo", "cafe con leche|cortado|capuchino|latte|cafe cortado|cafe con leche descafeinado|cafelito|cafe manchado|manchado|leche manchada|cappuccino", "1 taza:200|1 café:150|1 vaso:250"),
+  F("Café con leche", "bebida", 25, 1.6, 2.4, 2.4, 0, 1, "bajo", "cafe con leche|cortado|capuchino|latte|cafe cortado|cafe con leche descafeinado|cafelito|cafe manchado|manchado|leche manchada|cappuccino", "1 café con leche:200|1 taza:200|1 vaso:250"),
   F("Té o infusión", "bebida", 1, 0, 0.2, 0, 0, 0, "bajo", "te|infusion|manzanilla|poleo|tila|te verde|te negro|infusion de frutas|rooibos|poleo menta|te con limon|te rojo|infusiones|tisana|te frio sin azucar", "1 taza:200"),
   F("Refresco azucarado", "bebida", 42, 0, 10.6, 10.6, 0, 0, "alto", "refresco|coca cola|cocacola|coca-cola|fanta|kas|casera|refresco de cola|refresco de naranja|pepsi|sprite|refresco de limon|nestea|aquarius|refrescos|bebida azucarada|limonada|fanta naranja|trina|schweppes|tonica azucarada", "1 lata:330|1 vaso:200|1 botellín:200"),
   F("Refresco sin azúcar", "bebida", 1, 0, 0, 0, 0, 0, "bajo", "coca cola zero|cocacola zero|refresco zero|refresco light|coca cola light|pepsi max|refresco sin azucar|zero|fanta zero|sprite zero|coca zero|refresco cero|bebida zero|tonica zero|nestea zero|aquarius zero|tonica sin azucar", "1 lata:330|1 vaso:200"),
@@ -319,8 +320,8 @@ export const FOODS: Food[] = [
   F("Mejillones en escabeche", "pescado", 119, 12, 2, 0.5, 0, 7, "bajo", "mejillones en escabeche|mejillones de lata|berberechos en lata|zamburiñas|navajas|mejillones al vapor", "1 lata:70"),
   F("Merluza en salsa verde", "plato", 100, 13, 3, 0.5, 0.5, 4, "bajo", "merluza en salsa|merluza en salsa verde|pescado en salsa|merluza con almejas|pescado guisado|bacalao con tomate|bacalao a la vizcaina|bacalao al pil pil", "1 ración:250"),
   F("Pollo al ajillo", "plato", 199, 24, 1, 0, 0, 11, "bajo", "pollo al ajillo|pollo con ajo|pollo frito|pollo en salsa|pollo al limon|pollo al curry|pollo con tomate|pollo con salsa", "1 ración:200"),
-  F("Pollo guisado con patatas", "plato", 134, 12, 8, 1, 1, 6, "medio", "pollo guisado|pollo con patatas|guiso de pollo|pollo en pepitoria|pollo con verduras|pollo con arroz y verduras|pollo guisado con verduras", "1 plato:350"),
-  F("Estofado de ternera", "plato", 130, 12, 8, 1, 1, 5.5, "medio", "estofado|estofado de ternera|carne guisada|ternera guisada|guiso de carne|carne con tomate|carne estofada|ternera con patatas|guiso|rabo de toro|carrilleras|carrillera|ternera en salsa|carne en salsa|cocido de carne|ossobuco|goulash|ropa vieja|carne con patatas", "1 plato:350"),
+  F("Pollo guisado con patatas", "plato", 134, 12, 8, 1, 1.4, 6, "medio", "pollo guisado|pollo con patatas|guiso de pollo|pollo en pepitoria|pollo con verduras|pollo con arroz y verduras|pollo guisado con verduras", "1 plato:350"),
+  F("Estofado de ternera", "plato", 130, 12, 8, 1, 1.4, 5.5, "medio", "estofado|estofado de ternera|carne guisada|ternera guisada|guiso de carne|carne con tomate|carne estofada|ternera con patatas|guiso|rabo de toro|carrilleras|carrillera|ternera en salsa|carne en salsa|cocido de carne|ossobuco|goulash|ropa vieja|carne con patatas", "1 plato:350"),
   F("Marmitako", "plato", 104, 10, 8, 1, 1, 3.5, "medio", "marmitako|guiso de atun|guiso de pescado|sopa de pescado|zarzuela|caldeirada|guiso marinero|cazuela de pescado|suquet|calderada", "1 plato:350"),
   F("Tortilla de verduras", "huevo", 129, 8, 4, 2, 1.5, 9, "bajo", "tortilla de calabacin|tortilla de espinacas|tortilla de champiñones|tortilla de verduras|tortilla de atun|tortilla de jamon|tortilla con atun|tortilla de queso|tortilla de gambas|tortilla de pimientos|tortilla de setas|tortilla rellena|tortilla de jamon y queso", "1 ración:150"),
   F("Revuelto de setas o gambas", "huevo", 142, 10, 3, 1, 1, 10, "bajo", "revuelto de setas|revuelto de gambas|revuelto de esparragos|revuelto de ajetes|revuelto de champiñones|revuelto con jamon|revuelto de verduras|revuelto de espinacas|revuelto de bacalao|revuelto de morcilla|huevos con jamon|huevos con chorizo", "1 ración:200"),
@@ -347,7 +348,7 @@ export const FOODS_BY_ID: Map<string, Food> = new Map(FOODS.map((f) => [f.id, f]
 /** Plural aproximado de un sustantivo de unidad (lata → latas, ración → raciones). */
 export function plural(w: string): string {
   const s = w.trim();
-  if (/[aeiou]$/i.test(s)) return s + "s";
+  if (/[aeioué]$/i.test(s)) return s + "s";
   if (/ón$/i.test(s)) return s.slice(0, -2) + "ones";
   if (/z$/i.test(s)) return s.slice(0, -1) + "ces";
   return s + "es";
@@ -390,6 +391,14 @@ function textoRacion(f: Food, r: Racion, medio: number): string {
     if (mismo) return `${cuenta(medio, sing)} ${plur ? pluralNombre(nombre) : nombre}`;
   }
   return `${cuenta(medio, sing)} ${noun} de ${nombre}`;
+}
+/** Ración casera con cifra: «2 cafés con leche», «½ plato de lentejas», «1 yogur». Sin ración conocida: «2 raciones». */
+export function racionLabel(f: Food | undefined, n: number): string {
+  const num = n === 0.5 ? "½" : Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10).replace(".", ",");
+  const r = f?.rac[0];
+  if (!f || !r) return `${num} ${n > 1 ? "raciones" : "ración"}`;
+  const t = textoRacion(f, r, Math.abs(n - 1) < 0.01 ? 1 : n > 1 ? Math.max(n, 2) : n);
+  return `${num} ${t.split(" ").slice(1).join(" ")}`;
 }
 const SOLIDOS = new Set(["pan", "bolleria", "galletas", "queso", "embutido", "carne", "pescado", "dulce", "snack", "fruta", "patata"]);
 

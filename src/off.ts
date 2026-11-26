@@ -1,6 +1,7 @@
 /* Open Food Facts: productos por código de barras (EAN) y por nombre, con cámara (BarcodeDetector) o foto. */
 import { parseRacion } from "./foods";
 import type { Food, IG } from "./types";
+import { estimarFibra } from "./util";
 
 const FIELDS = "code,product_name,product_name_es,brands,nutriments,serving_quantity,serving_size,quantity,product_quantity";
 
@@ -28,6 +29,7 @@ export function alimentoDeOFF(p: OFFProducto): Food | null {
   const az = Math.min(n(nu["sugars_100g"]) ?? 0, c ?? 0);
   const ch = c ?? 0;
   const ig: IG = ch < 5 ? "bajo" : az / Math.max(ch, 1) > 0.5 && ch > 15 ? "alto" : ch > 40 ? "medio" : "medio";
+  const fib = n(nu["fiber_100g"]);
   const rac: string[] = [];
   const serv = n(p.serving_quantity);
   if (serv && serv > 0) rac.push(`1 ración:${Math.round(serv)}`);
@@ -38,7 +40,7 @@ export function alimentoDeOFF(p: OFFProducto): Food | null {
     id: `off-${p.code ?? nombre.toLowerCase().replace(/\W+/g, "-")}`,
     n: marca && !nombre.toLowerCase().includes(marca.toLowerCase()) ? `${nombre} (${marca})` : nombre,
     cat: "producto",
-    kcal: Math.round(kcal * 10) / 10, p: pr ?? 0, c: ch, az, fi: n(nu["fiber_100g"]) ?? 0, gr: gr ?? 0,
+    kcal: Math.round(kcal * 10) / 10, p: pr ?? 0, c: ch, az, fi: fib ?? estimarFibra(ch, az), fiEst: fib == null && ch >= 5 ? true : undefined, gr: gr ?? 0,
     ig, syn: [], rac: rac.map(parseRacion), fuente: "off", ean: p.code,
   };
 }

@@ -1,5 +1,5 @@
 /* «Compartir con Coco»: texto legible + JSON, webhook opcional, Atajo de iPhone y compartir/copiar. */
-import { corregirComida, objetivoToma, totalesDia, revisionDia } from "./coach";
+import { agruparTomas, corregirComida, objetivoToma, totalesDia, revisionDia } from "./coach";
 import type { Correccion, Meal, Perfil } from "./types";
 import { sumar, tomaLabel } from "./types";
 import { fechaLarga, fmt } from "./util";
@@ -14,7 +14,7 @@ export function construirPaquete(fecha: string, meals: Meal[], perfil: Perfil, p
   const lineas: string[] = [];
   const dias = [...new Set(orden.map((m) => m.fecha))];
   const jsonDias = dias.map((f) => {
-    const ms = orden.filter((m) => m.fecha === f);
+    const ms = agruparTomas(orden.filter((m) => m.fecha === f)); // una toma = apuntes cercanos juntos
     const tot = totalesDia(ms);
     lineas.push(`${fechaLarga(f)}:`);
     const comidas = ms.map((m) => {

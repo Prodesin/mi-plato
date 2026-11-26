@@ -15,6 +15,7 @@ export type Food = {
   rac: Racion[];
   fuente: Fuente;
   ean?: string;
+  fiEst?: boolean; // fibra estimada (el origen no la daba)
 };
 
 export type Por100 = { kcal: number; p: number; c: number; az: number; fi: number; gr: number };
@@ -33,6 +34,7 @@ export type Item = {
   texto?: string; // lo que escribió Jorge
   aviso?: string; // desviación frente a la base local
   cambiado?: boolean; // Jorge ha corregido la cantidad
+  fiEst?: boolean; // fibra estimada (no venía en la fuente)
 };
 
 export type Meal = {

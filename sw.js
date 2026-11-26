@@ -1,7 +1,7 @@
 /* Service worker de «Mi plato».
  * - App shell: precache + cache-first. Para publicar una versión nueva, sube CACHE_VERSION.
  * - Solo se sirven peticiones del mismo origen: las APIs (IA, Open Food Facts, webhook) nunca se cachean. */
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const PREFIX = 'mi-plato-';
 const SHELL_CACHE = `${PREFIX}shell-${CACHE_VERSION}`;
 const SHELL = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];

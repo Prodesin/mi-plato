@@ -613,3 +613,33 @@ details.ayuda summary { min-height: 44px; display: flex; align-items: center; fo
 .entrada__ta { flex: 1 1 170px; min-width: 0; resize: none; }
 .entrada__icons { margin-left: auto; gap: 0; }
 @media (min-width: 600px) and (max-width: 760px) { .k-seg button { white-space: normal; font-size: 13.5px; line-height: 1.15; } }
+
+/* ===== Retoques 2: raciones fáciles, fecha compacta, caja sin tirador ===== */
+.item-row { gap: 8px; }
+.item-row__top { align-items: center; }
+.item-row__name { flex: 1 1 0; min-width: 0; text-align: left; background: none; border: 0; padding: 0; min-height: 44px; display: flex; align-items: center; color: var(--text); font: inherit; cursor: pointer; }
+.item-row__name b { font-size: 17px; font-weight: 600; }
+.item-row .icon-btn.small { min-width: 44px; min-height: 44px; font-size: 22px; background: transparent; color: var(--muted); }
+.rac { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.rac__step { display: flex; align-items: center; gap: 6px; background: var(--card2); border-radius: 14px; padding: 2px; min-width: 0; }
+.rac__b { flex: 0 0 44px; width: 44px; height: 44px; border: 0; border-radius: 12px; background: var(--card); color: var(--accent-ink); font-size: 24px; font-weight: 600; line-height: 1; touch-action: manipulation; }
+.rac__txt { flex: 1 1 0; min-width: 0; text-align: center; font-size: 16px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.rac__chips { display: flex; gap: 6px; }
+.rac__chip { flex: 0 0 44px; min-width: 44px; height: 44px; border: 0; border-radius: 12px; background: var(--card2); color: var(--muted); font-size: 16px; font-weight: 600; touch-action: manipulation; }
+.rac__chip.on { background: var(--accent); color: #fff; }
+.item-row__details { margin-top: 2px; display: flex; flex-direction: column; gap: 8px; }
+.qty__lbl { font-size: 14px; color: var(--muted); }
+@media (min-width: 560px) { .rac { flex-direction: row; align-items: center; } .rac__step { flex: 1 1 0; } }
+
+/* La caja de «¿Qué estás comiendo?» no se redimensiona (textarea.k-input pesa más que .entrada__ta) */
+textarea.k-input.entrada__ta, .entrada .entrada__ta { resize: none !important; }
+
+/* Fecha de «Hoy»: siempre en una línea */
+.apple-title-wrap { min-width: 0; flex: 1 1 auto; }
+.apple-date { white-space: nowrap; display: block; }
+.apple-date .d-corto { display: none; }
+@media (min-width: 600px) and (max-width: 860px) { .apple-date .d-largo { display: none; } .apple-date .d-corto { display: inline; } }
+@media (max-width: 380px) { .apple-date .d-largo { display: none; } .apple-date .d-corto { display: inline; } }
+.daynav__controls { flex: 0 0 auto; gap: 4px; }
+.item-row__name { justify-content: flex-start; text-align: left; }
+.item-row__name { flex-direction: row; }

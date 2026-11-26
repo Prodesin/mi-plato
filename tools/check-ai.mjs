@@ -25,6 +25,19 @@ const raro = ai.itemsDeIA(ai.validarRespuesta(JSON.stringify({ ...OK, items: [{ 
 if (!raro[0].aviso) fail("debe avisar si la IA se desvía mucho de la base");
 const normal = ai.itemsDeIA(ai.validarRespuesta(JSON.stringify(OK)), FOODS);
 if (normal[0].aviso) fail("no debe avisar si la IA coincide con la base");
+// Fibra: la IA no debe colar un 0 engañoso
+{
+  const base = { ...OK.items[0], hidratos: 40, azucares: 2, gramos: 300 };
+  for (const fibra of [0, null, undefined]) {
+    const it = { ...base, fibra }; if (fibra === undefined) delete it.fibra;
+    const r = ai.validarRespuesta(JSON.stringify({ ...OK, items: [it] }));
+    if (!(r.items[0].fibra > 0) || !r.items[0].fibraEst) fail("fibra " + fibra + " con 40 g de hidratos debe estimarse (>0) y marcarse");
+  }
+  const real = ai.validarRespuesta(JSON.stringify({ ...OK, items: [{ ...base, fibra: 5 }] }));
+  if (real.items[0].fibra !== 5 || real.items[0].fibraEst) fail("una fibra dada por la IA no se toca");
+  const carne = ai.validarRespuesta(JSON.stringify({ ...OK, items: [{ ...OK.items[0], hidratos: 0, azucares: 0, fibra: 0 }] }));
+  if (carne.items[0].fibra !== 0 || carne.items[0].fibraEst) fail("0 de fibra con 0 hidratos es correcto");
+}
 // prompt
 const hist = [{ id: "1", fecha: "2026-11-25", hora: "14:00", toma: "comida", texto: "", items: [{ id: "a", foodId: "huevo", nombre: "Huevo", g: 120, por100: { kcal: 143, p: 12.6, c: .7, az: .4, fi: 0, gr: 9.8 }, ig: "bajo", cat: "huevo", fuente: "base" }] }];
 const sys = ai.promptSistema({ perfil: PERFIL_JORGE, hoy: hist, historial: hist, toma: "cena", hora: "21:00" });

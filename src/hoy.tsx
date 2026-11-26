@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { revisionConIA, resumenTexto, ErrorIA } from "./ai";
 import { crearBorrador } from "./analizar";
 import { Anillo } from "./charts";
-import { fraseRestante, queComer, revisionDia, siguienteToma, totalesDia, corregirComida, type Opcion } from "./coach";
+import { agruparTomas, fraseRestante, queComer, revisionDia, siguienteToma, totalesDia, corregirComida, type MealToma, type Opcion } from "./coach";
 import { CompartirCoco } from "./compartir";
 import { type Datos, type Draft, draftVacio, itemDe, itemsDeFavorito } from "./data";
 import { Button, Segmented, toast, useGrokTheme } from "./kit";
@@ -11,7 +11,7 @@ import { reducirImagen } from "./ai";
 import { Corr } from "./revision";
 import type { Correccion, Meal } from "./types";
 import { TOMAS, itemTotales, sumar, tomaLabel, tomaPorHora } from "./types";
-import { addDays, fechaLarga, fmt, horaAhora, isoDate, kcal as ktxt, uid } from "./util";
+import { addDays, fechaLarga, fechaMedia, fmt, horaAhora, isoDate, kcal as ktxt, uid } from "./util";
 
 type IA = { activa: boolean; cfg: import("./ai").Cfg };
 const EJEMPLOS = ["dos huevos, una tostada de pan integral y café con leche", "un plato de lentejas con una manzana", "ensalada con atún y un chorrito de aceite, y una cerveza"];
@@ -35,6 +35,7 @@ export function Hoy({ datos, fecha, setFecha, abrir, ia, abrirEscaner }: { datos
   const hora = horaAhora();
 
   const delDia = useMemo(() => comidas.filter((m) => m.fecha === fecha).sort((a, b) => a.hora.localeCompare(b.hora)), [comidas, fecha]);
+  const tomasDia = useMemo(() => agruparTomas(delDia), [delDia]); // apuntes cercanos = una sola comida
   const tot = totalesDia(delDia);
   const frecIds = useMemo(() => datos.frecuentes.filter((f) => f.foodId).map((f) => f.foodId!), [datos.frecuentes]);
   const toma = siguienteToma(delDia, hora);
@@ -155,7 +156,7 @@ export function Hoy({ datos, fecha, setFecha, abrir, ia, abrirEscaner }: { datos
           <div class="daynav apple-header">
             <div class="apple-title-wrap">
               <h1 class="apple-large-title">Hoy</h1>
-              <small class="apple-date">{fechaLarga(fecha)}</small>
+              <small class="apple-date"><span class="d-largo">{fechaLarga(fecha)}</span><span class="d-corto">{fechaMedia(fecha)}</span></small>
             </div>
             <div class="daynav__controls">
               <button type="button" class="icon-btn" aria-label="Día anterior" onClick={() => setFecha(addDays(fecha, -1))}>‹</button>
@@ -242,7 +243,7 @@ export function Hoy({ datos, fecha, setFecha, abrir, ia, abrirEscaner }: { datos
           <h2 class="card-h">Comidas</h2>
           {delDia.length === 0 ? <p class="k-text muted">Ninguna comida registrada hoy.</p> : (
             <ul class="meals">
-              {TOMAS.map((t) => ({ t, ms: delDia.filter((m) => m.toma === t.id) })).filter((g) => g.ms.length).flatMap((g) => g.ms).map((m) => <MealCard key={m.id} m={m} datos={datos} otras={delDia.filter((x) => x.id !== m.id)} frecIds={frecIds} onEditar={() => abrir({ editId: m.id, fecha: m.fecha, hora: m.hora, toma: m.toma, tomaManual: true, texto: m.texto, items: m.items.map((i) => ({ ...i })), pend: [], glucAntes: m.glucAntes != null ? String(m.glucAntes) : "", glucDespues: m.glucDespues != null ? String(m.glucDespues) : "", nota: m.nota ?? "", iaCorr: m.iaCorr ?? [], origen: "manual", fav: false, favNombre: "" })} onRepetir={() => desdeMeal(m, "repetir")} />)}
+              {tomasDia.map((m) => <MealCard key={m.id} m={m} datos={datos} otras={tomasDia.filter((x) => x.id !== m.id)} frecIds={frecIds} onEditar={(a) => abrir({ editId: a.id, fecha: a.fecha, hora: a.hora, toma: a.toma, tomaManual: true, texto: a.texto, items: a.items.map((i) => ({ ...i })), pend: [], glucAntes: a.glucAntes != null ? String(a.glucAntes) : "", glucDespues: a.glucDespues != null ? String(a.glucDespues) : "", nota: a.nota ?? "", iaCorr: a.iaCorr ?? [], origen: "manual", fav: false, favNombre: "" })} onRepetir={() => desdeMeal(m, "repetir")} />)}
             </ul>
           )}
         </section>
@@ -267,7 +268,7 @@ export function Hoy({ datos, fecha, setFecha, abrir, ia, abrirEscaner }: { datos
   );
 }
 
-function MealCard({ m, datos, otras, frecIds, onEditar, onRepetir }: { m: Meal; datos: Datos; otras: Meal[]; frecIds: string[]; onEditar: () => void; onRepetir: () => void }) {
+function MealCard({ m, datos, otras, frecIds, onEditar, onRepetir }: { m: MealToma; datos: Datos; otras: Meal[]; frecIds: string[]; onEditar: (a: Meal) => void; onRepetir: () => void }) {
   const t = sumar(m.items);
   const corr = useMemo(() => corregirComida(m, { perfil: datos.perfil, dia: otras, frecuentes: frecIds, catalogo: datos.catalogo }), [m, datos.perfil, otras, frecIds, datos.catalogo]);
   const [abierto, setAbierto] = useState(false);
@@ -279,7 +280,7 @@ function MealCard({ m, datos, otras, frecIds, onEditar, onRepetir }: { m: Meal; 
       <div class="meal-compact__main" onClick={() => setAbierto(!abierto)} role="button" tabIndex={0}>
         <span class="meal-compact__ico">{emoji}</span>
         <div class="meal-compact__info">
-          <div class="meal-compact__top"><b>{tomaLabel(m.toma)}</b> <small class="muted">{m.hora}</small></div>
+          <div class="meal-compact__top"><b>{tomaLabel(m.toma)}</b> <small class="muted">{m.hora}{m.apuntes.length > 1 ? ` · ${m.apuntes.length} apuntes` : ""}</small></div>
           <div class="meal-compact__sub">{ktxt(t.kcal)} <span class={`dot dot--${semaforo}`} /></div>
         </div>
         <span class="meal-compact__chevron">{abierto ? "⌄" : "›"}</span>
@@ -288,7 +289,7 @@ function MealCard({ m, datos, otras, frecIds, onEditar, onRepetir }: { m: Meal; 
         <div class="meal-compact__details">
           <ul class="meal__items">{m.items.map((i) => <li key={i.id}>{i.nombre} <span class="muted">{fmt(i.g)} g · {fmt(itemTotales(i).kcal)} kcal</span></li>)}</ul>
           {corr.length ? <ul class="corrs compact">{corr.map((c, i) => <Corr key={i} c={c} />)}</ul> : null}
-          <div class="btn-row"><Button label="Editar" onClick={onEditar} /><Button label="Repetir" onClick={onRepetir} /></div>
+          <div class="btn-row">{m.apuntes.length > 1 ? m.apuntes.map((a) => <Button key={a.id} label={`Editar ${a.hora}`} onClick={() => onEditar(a)} />) : <Button label="Editar" onClick={() => onEditar(m.apuntes[0])} />}<Button label="Repetir" onClick={onRepetir} /></div>
         </div>
       ) : null}
     </li>

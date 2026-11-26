@@ -54,6 +54,65 @@ for (const rr of [r1, r2, r3, r4, r5, ...casos.map(([t, toma, h]) => run(t, toma
   if (/gambas|dos latas|tres latas/i.test(c.texto)) fail("sugerencia poco casera: " + c.texto);
   if (/\b\d+ g de /.test(c.texto)) fail("gramos en el texto principal (van en la cifra): " + c.texto);
 }
+
+// ---- Retoques 2 ----
+// Dato: «patatas panaderas mercadona 300 g» → ~50-60 g de hidratos y algo de fibra (no 119 g ni 0 g)
+{
+  const it = mk("patatas panaderas mercadona 300 g");
+  const tot = it.reduce((a, i) => ({ c: a.c + i.por100.c * i.g / 100, fi: a.fi + i.por100.fi * i.g / 100 }), { c: 0, fi: 0 });
+  console.log(`\npatatas panaderas 300 g → ${tot.c.toFixed(0)} g hidratos, ${tot.fi.toFixed(1)} g fibra (${it.map((i) => i.nombre + " " + i.g)})`);
+  if (it.length !== 1 || it[0].g !== 300) fail("patatas panaderas: debe ser un alimento de 300 g");
+  if (tot.c < 45 || tot.c > 65) fail("patatas panaderas: hidratos fuera de 45-65 g: " + tot.c);
+  if (tot.fi < 3) fail("patatas panaderas: debe llevar algo de fibra");
+}
+// Ninguna sugerencia de proteína con legumbre (garbanzos, lentejas…)
+for (const toma of ["desayuno", "comida", "merienda", "cena", "otro"]) {
+  for (const txt of ["una tostada de pan integral", "una manzana", "ensalada de tomate", "un plato de arroz"]) {
+    for (const frec of [[], ["garbanzos-cocidos", "lentejas-cocidas"]]) {
+      const r = coach.corregirComida({ items: mk(txt), toma, hora: "13:00" }, { perfil: PERFIL_JORGE, dia: [], frecuentes: frec });
+      for (const c of r) if (/garbanzo|lenteja|alubia/i.test(c.texto) && c.accion?.t === "anadir" && /proteína/i.test(c.porque + c.cifra)) fail("legumbre propuesta para la proteína: " + c.texto);
+    }
+  }
+}
+for (const toma of ["comida", "cena"]) for (const o of coach.queComer({ perfil: PERFIL_JORGE, dia: [], toma, frecuentes: ["garbanzos-cocidos"] }).opciones) if (/garbanzo/i.test(o.titulo)) fail("queComer propone garbanzos: " + o.titulo);
+// Tomas: apuntes cercanos = una sola comida
+{
+  const mkMeal = (id, hora, toma, txt, fecha = "2026-11-25") => ({ id, fecha, hora, toma, texto: txt, items: mk(txt) });
+  const g1 = coach.agruparTomas([mkMeal("a", "08:47", "desayuno", "un café con leche"), mkMeal("b", "11:09", "desayuno", "un café con leche")]);
+  if (g1.length !== 1 || g1[0].apuntes.length !== 2) fail("dos cafés de desayuno (08:47 y 11:09) deben ser una sola toma");
+  const g2 = coach.agruparTomas([mkMeal("c", "13:35", "comida", "patatas panaderas"), mkMeal("d", "13:44", "comida", "un yogur")]);
+  if (g2.length !== 1) fail("patatas 13:35 + yogur 13:44 deben ser una sola comida");
+  const g3 = coach.agruparTomas([mkMeal("e", "08:30", "desayuno", "un café con leche"), mkMeal("f", "14:00", "comida", "un plato de lentejas"), mkMeal("g", "21:00", "cena", "dos huevos")]);
+  if (g3.length !== 3) fail("tomas distintas y lejanas deben seguir separadas");
+  const g4 = coach.agruparTomas([mkMeal("h", "08:47", "desayuno", "un café con leche", "2026-11-24"), mkMeal("i", "08:50", "desayuno", "un café con leche", "2026-11-25")]);
+  if (g4.length !== 2) fail("apuntes de días distintos no se juntan");
+  // el consejo se da UNA vez para el conjunto
+  const dosCafes = g1[0];
+  const unico = coach.corregirComida(dosCafes, { perfil: PERFIL_JORGE, dia: [] }).filter((c) => c.accion?.t === "anadir" && /proteína/i.test(c.porque + c.cifra));
+  const porApunte = [mkMeal("a", "08:47", "desayuno", "un café con leche"), mkMeal("b", "11:09", "desayuno", "un café con leche")].flatMap((m) => coach.corregirComida(m, { perfil: PERFIL_JORGE, dia: [] })).filter((c) => c.accion?.t === "anadir" && /proteína/i.test(c.porque + c.cifra));
+  console.log(`\ndos cafés: ${unico.length} consejo(s) de proteína por toma frente a ${porApunte.length} por apunte`);
+  if (unico.length !== 1) fail("la toma de dos cafés debe dar un único consejo de proteína");
+  // revisión de semana: la toma cuenta una vez
+  const sem = coach.revisionSemana("2026-11-23", [mkMeal("a", "08:47", "desayuno", "un café con leche", "2026-11-24"), mkMeal("b", "11:09", "desayuno", "un café con leche", "2026-11-24"), mkMeal("c", "08:30", "desayuno", "un café con leche", "2026-11-25")], PERFIL_JORGE);
+  const err = sem.errores.find((e) => /Desayunos flojos/.test(e.texto));
+  if (!err || err.de !== 2) fail("la semana debe contar 2 desayunos (no 3 apuntes): " + (err?.texto ?? "sin error"));
+  // texto compartido: una sola entrada de toma
+  const { construirPaquete } = await load("src/coco.ts");
+  const pk = construirPaquete("2026-11-25", [mkMeal("a", "08:47", "desayuno", "un café con leche"), mkMeal("b", "11:09", "desayuno", "un café con leche")], PERFIL_JORGE);
+  const n = (pk.texto.match(/Desayuno \(/g) || []).length;
+  if (n !== 1) fail("el texto compartido debe tener una sola toma «Desayuno» (hay " + n + ")");
+}
+// Ración casera
+{
+  const { racionLabel, FOODS_BY_ID } = await load("src/foods.ts");
+  const L = (id, n) => racionLabel(FOODS_BY_ID.get(id), n);
+  console.log("\nraciones:", [L("cafe-con-leche", 2), L("lentejas-cocidas", 1), L("yogur-natural", 1), L("huevo", 2), L("lentejas-cocidas", 0.5)].join(" | "));
+  if (L("cafe-con-leche", 2) !== "2 cafés con leche") fail("ración: «2 cafés con leche», sale «" + L("cafe-con-leche", 2) + "»");
+  if (L("huevo", 2) !== "2 huevos") fail("ración: «2 huevos», sale «" + L("huevo", 2) + "»");
+  if (!/^1 yogur/.test(L("yogur-natural", 1))) fail("ración: «1 yogur…»");
+  if (!/^½ /.test(L("lentejas-cocidas", 0.5))) fail("ración: media ración con ½");
+  if (!/^1 /.test(racionLabel(undefined, 1))) fail("ración sin conocer: «1 ración»");
+}
 // Qué comer ahora
 const q = coach.queComer({ perfil: PERFIL_JORGE, dia: [], toma: "cena", frecuentes: ["huevo", "atun-al-natural"] });
 console.log("\nQué cenar:"); for (const o of q.opciones) console.log(`  - ${o.titulo} — ${o.porque} (${o.cifra})`);

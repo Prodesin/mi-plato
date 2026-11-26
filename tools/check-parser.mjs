@@ -27,6 +27,14 @@ const CASOS = [
   ["plato grande de macarrones", [["pasta-cocida", 280, 300]]],
   ["ración pequeña de paella", [["paella", 200, 220]]],
   ["media barra de pan", [["pan-blanco", 125, 125]]],
+  ["café con leche", [["cafe-con-leche", 200, 200]]],
+  ["2 cafés con leche", [["cafe-con-leche", 400, 400]]],
+  ["dos cafés con leche", [["cafe-con-leche", 400, 400]]],
+  ["tres cafés con leche", [["cafe-con-leche", 600, 600]]],
+  ["media taza de café con leche", [["cafe-con-leche", 100, 100]]],
+  ["dos cafés", [["cafe-solo", 100, 100]]],
+  ["2 yogures", [["yogur-natural", 250, 250]]],
+  ["dos yogures naturales", [["yogur-natural", 250, 250]]],
   ["un par de huevos fritos", [["huevo-frito", 110, 110]]],
   ["un vaso de leche con colacao", [["leche-semidesnatada", 200, 200], ["cola-cao", 15, 15]]],
   ["una manzana, un plátano y 30 g de nueces", [["manzana", 180, 180], ["platano", 120, 120], ["nueces", 30, 30]]],
@@ -64,6 +72,19 @@ if (!(raro.length === 1 && raro[0].food === null)) { bad++; console.log("✗ lo 
 for (const [q, id] of [["lent", "lentejas-cocidas"], ["atun", "atun-al-natural"], ["colacao", "cola-cao"]]) {
   const r = buscar(q, FOODS, 8).map((f) => f.id);
   if (!r.includes(id)) { bad++; console.log(`✗ buscar("${q}") no devuelve ${id}: ${r.join(", ")}`); }
+}
+// Texto de la ración que se ve en Hoy y en el selector («2 cafés con leche»)
+{
+  const { cantidadItem } = await load("src/raciones.ts");
+  const { itemDeAlimento } = await load("src/coach.ts");
+  const cat = new Map(FOODS.map((f) => [f.id, f]));
+  const cafe = cat.get("cafe-con-leche");
+  for (const [g, esperado] of [[200, "1 café con leche"], [400, "2 cafés con leche"], [100, "½ café con leche"], [333, "333 g"]]) {
+    const t = cantidadItem(itemDeAlimento(cafe, g, "x"), cat);
+    if (t !== esperado) { bad++; console.log(`✗ cantidadItem(${g} g) = «${t}», esperado «${esperado}»`); }
+  }
+  const t = cantidadItem({ ...itemDeAlimento(cafe, 120, "y"), foodId: null, nombre: "Cosa", rac: { sing: "huevo", g: 60 } }, cat);
+  if (!/^2 huevos/.test(t)) { bad++; console.log(`✗ ración casera de IA: «${t}»`); }
 }
 console.log(bad ? `\n${bad} caso(s) con error de ${CASOS.length + 4}` : `OK: ${CASOS.length} frases + desconocido + buscador`);
 process.exit(bad ? 1 : 0);

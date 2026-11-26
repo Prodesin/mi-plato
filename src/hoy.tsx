@@ -7,9 +7,9 @@ import { agruparTomas, fraseRestante, queComer, revisionDia, siguienteToma, tota
 import { CompartirCoco } from "./compartir";
 import { type Datos, type Draft, draftVacio, itemDe, itemsDeFavorito } from "./data";
 import { Button, Segmented, toast, useGrokTheme } from "./kit";
-import { reducirImagen } from "./ai";
+import { cantidadItem } from "./raciones";
 import { Corr } from "./revision";
-import type { Correccion, Meal } from "./types";
+import type { Correccion, Food, Item, Meal } from "./types";
 import { TOMAS, itemTotales, sumar, tomaLabel, tomaPorHora } from "./types";
 import { addDays, fechaLarga, fechaMedia, fmt, horaAhora, isoDate, kcal as ktxt, uid } from "./util";
 
@@ -18,7 +18,7 @@ const EJEMPLOS = ["dos huevos, una tostada de pan integral y café con leche", "
 
 const SR = (): any => (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-export function Hoy({ datos, fecha, setFecha, abrir, ia, abrirEscaner }: { datos: Datos; fecha: string; setFecha: (f: string) => void; abrir: (d: Draft) => void; ia: IA; abrirEscaner: () => void }) {
+export function Hoy({ datos, fecha, setFecha, abrir, ia, abrirEscaner, foco, onFoto, fotoBusy }: { datos: Datos; fecha: string; setFecha: (f: string) => void; abrir: (d: Draft) => void; ia: IA; abrirEscaner: () => void; foco: number; onFoto: (f: File) => void; fotoBusy: boolean }) {
   const th = useGrokTheme();
   const { perfil, comidas, borrador, setBorrador, ajustes, setAjustes } = datos;
   const texto = borrador.texto;
@@ -48,6 +48,8 @@ export function Hoy({ datos, fecha, setFecha, abrir, ia, abrirEscaner }: { datos
   const primeraVez = comidas.length === 0 && !ajustes.bienvenida;
 
   useEffect(() => () => rec.current?.stop?.(), []);
+  const ta = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => { if (foco > 0) ta.current?.focus(); }, [foco]);
 
   async function analizar(t = texto, imagenes: string[] = []) {
     if (!t.trim() && !imagenes.length) return toast("Escribe primero lo que estás comiendo.", true);
@@ -62,18 +64,11 @@ export function Hoy({ datos, fecha, setFecha, abrir, ia, abrirEscaner }: { datos
       setCargando(false);
     }
   }
-  async function onFoto(e: Event) {
+  function alElegirFoto(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
     const f = input.files?.[0];
     input.value = "";
-    if (!f) return;
-    if (!ia.activa) return toast("La foto necesita la IA: actívala en Ajustes. Mientras tanto, escribe lo que hay en el plato.", true);
-    try {
-      const img = await reducirImagen(f);
-      await analizar(texto, [img]);
-    } catch (err) {
-      toast((err as Error).message || "No se pudo leer la foto.", true);
-    }
+    if (f) onFoto(f);
   }
   function micro() {
     const R = SR();
@@ -210,16 +205,19 @@ export function Hoy({ datos, fecha, setFecha, abrir, ia, abrirEscaner }: { datos
 
         <section class="ep-card entrada" style={{ order: 4 }}>
           <div class="entrada__box">
-            <textarea class="k-input entrada__ta" rows={2} autoCapitalize="sentences" placeholder="¿Qué estás comiendo?" aria-label="¿Qué estás comiendo?" value={texto} onInput={(e) => setTexto((e.currentTarget as HTMLTextAreaElement).value)} />
+            <textarea ref={ta} class="k-input entrada__ta" rows={2} autoCapitalize="sentences" placeholder="¿Qué estás comiendo?" aria-label="¿Qué estás comiendo?" value={texto} onInput={(e) => setTexto((e.currentTarget as HTMLTextAreaElement).value)} />
             <div class="entrada__icons">
               {SR() ? <button type="button" class={`icon-btn small${escuchando ? " on" : ""}`} aria-label={escuchando ? "Parar dictado" : "Dictar"} onClick={micro}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg></button> : null}
-              <button type="button" class="icon-btn small" aria-label="Hacer una foto al plato" onClick={() => foto.current?.click()}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></svg></button>
               <button type="button" class="icon-btn small" aria-label="Escanear código de barras" onClick={abrirEscaner}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6v12M8 6v12M12 6v12M16 6v12M20 6v12" /></svg></button>
-              <input ref={foto} type="file" accept="image/*" capture="environment" hidden onChange={onFoto} />
+              <input ref={foto} type="file" accept="image/*" capture="environment" hidden onChange={alElegirFoto} />
             </div>
           </div>
           <div class="entrada__bar">
             <Button label={cargando ? "Analizando…" : "Corregir mi comida"} variant="primary" disabled={cargando} onClick={() => analizar()} />
+            <button type="button" class="k-btn entrada__foto" disabled={fotoBusy} onClick={() => foto.current?.click()}>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></svg>
+              {fotoBusy ? "Analizando…" : "Foto del plato"}
+            </button>
           </div>
           <div class="atajos">
             <Segmented options={[{ value: "frecuentes", label: "Lo de siempre" }, { value: "favoritos", label: "Favoritos" }, { value: "recientes", label: "Repetir" }]} value={atajo} onChange={setAtajo} />
@@ -268,6 +266,12 @@ export function Hoy({ datos, fecha, setFecha, abrir, ia, abrirEscaner }: { datos
   );
 }
 
+/** «2 cafés con leche» (o «Pan 350 g» si no cuadra con raciones de casa). */
+const lineaItem = (i: Item, cat: Map<string, Food>): string => {
+  const q = cantidadItem(i, cat);
+  return q.endsWith(" g") ? `${i.nombre} ${q}` : q;
+};
+
 function MealCard({ m, datos, otras, frecIds, onEditar, onRepetir }: { m: MealToma; datos: Datos; otras: Meal[]; frecIds: string[]; onEditar: (a: Meal) => void; onRepetir: () => void }) {
   const t = sumar(m.items);
   const corr = useMemo(() => corregirComida(m, { perfil: datos.perfil, dia: otras, frecuentes: frecIds, catalogo: datos.catalogo }), [m, datos.perfil, otras, frecIds, datos.catalogo]);
@@ -287,7 +291,7 @@ function MealCard({ m, datos, otras, frecIds, onEditar, onRepetir }: { m: MealTo
       </div>
       {abierto ? (
         <div class="meal-compact__details">
-          <ul class="meal__items">{m.items.map((i) => <li key={i.id}>{i.nombre} <span class="muted">{fmt(i.g)} g · {fmt(itemTotales(i).kcal)} kcal</span></li>)}</ul>
+          <ul class="meal__items">{m.items.map((i) => <li key={i.id}>{lineaItem(i, datos.catalogo)} <span class="muted">{fmt(itemTotales(i).kcal)} kcal</span></li>)}</ul>
           {corr.length ? <ul class="corrs compact">{corr.map((c, i) => <Corr key={i} c={c} />)}</ul> : null}
           <div class="btn-row">{m.apuntes.length > 1 ? m.apuntes.map((a) => <Button key={a.id} label={`Editar ${a.hora}`} onClick={() => onEditar(a)} />) : <Button label="Editar" onClick={() => onEditar(m.apuntes[0])} />}<Button label="Repetir" onClick={onRepetir} /></div>
         </div>

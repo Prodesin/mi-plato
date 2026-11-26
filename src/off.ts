@@ -88,7 +88,9 @@ export async function buscarOFF(q: string): Promise<Food[]> {
 type Detector = { detect(src: CanvasImageSource): Promise<{ rawValue: string }[]> };
 type DetectorCtor = new (o?: { formats?: string[] }) => Detector;
 const Ctor = (): DetectorCtor | undefined => (window as unknown as { BarcodeDetector?: DetectorCtor }).BarcodeDetector;
+/** Hay lector nativo (Chrome/Android). En Safari/iOS se usa ZXing (zxing.js, cargado bajo demanda). */
 export const barcodeSoportado = (): boolean => typeof window !== "undefined" && !!Ctor();
+export const camaraDisponible = (): boolean => typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
 
 function nuevoDetector(): Detector | null {
   const C = Ctor();
@@ -96,37 +98,91 @@ function nuevoDetector(): Detector | null {
   try { return new C({ formats: ["ean_13", "ean_8", "upc_a", "upc_e"] }); } catch { return new C(); }
 }
 
-/** Lee un código desde una foto (si el navegador sabe). */
-export async function codigoDeFoto(file: Blob): Promise<string | null> {
-  const d = nuevoDetector();
-  if (!d) return null;
-  const bmp = await createImageBitmap(file);
-  const res = await d.detect(bmp);
-  return res[0]?.rawValue ?? null;
+type ZX = { decodificar(c: HTMLCanvasElement): string | null };
+let zxPromesa: Promise<ZX> | null = null;
+/** Carga zxing.js (mismo origen, lo guarda el service worker) una sola vez. */
+export function cargarZXing(): Promise<ZX> {
+  const w = window as unknown as { MiPlatoZXing?: ZX };
+  if (w.MiPlatoZXing) return Promise.resolve(w.MiPlatoZXing);
+  zxPromesa ??= new Promise<ZX>((ok, ko) => {
+    const s = document.createElement("script");
+    s.src = "./zxing.js";
+    s.onload = () => (w.MiPlatoZXing ? ok(w.MiPlatoZXing) : ko(new Error("zxing")));
+    s.onerror = () => { zxPromesa = null; ko(new Error("zxing")); };
+    document.head.appendChild(s);
+  });
+  return zxPromesa;
 }
 
-/** Cámara en directo: llama a onCode con el primer código leído. Devuelve una función para parar. */
-export async function iniciarCamara(video: HTMLVideoElement, onCode: (c: string) => void): Promise<() => void> {
+/** Lee un código desde una foto: lector nativo si existe y, si no, ZXing (probando varios tamaños y giros). */
+export async function codigoDeFoto(file: Blob): Promise<string | null> {
+  const bmp = await createImageBitmap(file);
   const d = nuevoDetector();
-  if (!d) throw new Error("Este navegador no lee códigos de barras.");
-  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-  video.srcObject = stream;
-  video.setAttribute("playsinline", "true");
-  await video.play();
-  let vivo = true;
-  const bucle = async () => {
-    while (vivo) {
-      try {
-        const r = await d.detect(video);
-        if (r[0]?.rawValue) { vivo = false; onCode(r[0].rawValue); break; }
-      } catch { /* sigue intentando */ }
-      await new Promise((ok) => setTimeout(ok, 250));
+  if (d) {
+    try { const r = await d.detect(bmp); if (r[0]?.rawValue) return r[0].rawValue; } catch { /* sigue con ZXing */ }
+  }
+  const zx = await cargarZXing();
+  for (const max of [1280, 800, 1920]) {
+    const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    for (const giro of [0, 90, 270]) {
+      const c = document.createElement("canvas");
+      const w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
+      c.width = giro ? h : w; c.height = giro ? w : h;
+      const x = c.getContext("2d")!;
+      x.translate(c.width / 2, c.height / 2); x.rotate((giro * Math.PI) / 180); x.drawImage(bmp, -w / 2, -h / 2, w, h);
+      const t = zx.decodificar(c);
+      if (t) return t;
     }
+  }
+  return null;
+}
+
+export type Camara = { parar: () => void; linterna: boolean; encender: (on: boolean) => Promise<boolean> };
+
+/** Cámara trasera en directo con detección continua. onCode recibe el primer código leído. */
+export async function iniciarCamara(video: HTMLVideoElement, onCode: (c: string) => void): Promise<Camara> {
+  if (!camaraDisponible()) throw new Error("sin-camara");
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+  video.muted = true;
+  video.setAttribute("playsinline", "true");
+  video.setAttribute("muted", "");
+  video.srcObject = stream;
+  let vivo = true;
+  const parar = () => { vivo = false; stream.getTracks().forEach((t) => t.stop()); video.srcObject = null; };
+  try {
+    await video.play();
+    const nativo = nuevoDetector();
+    const zx = nativo ? null : await cargarZXing();
+    if (!vivo) return { parar, linterna: false, encender: async () => false };
+    const lienzo = document.createElement("canvas");
+    const bucle = async () => {
+      while (vivo) {
+        let code: string | null = null;
+        try {
+          if (nativo) code = (await nativo.detect(video))[0]?.rawValue ?? null;
+          else if (video.videoWidth) {
+            // recorte central (donde está el marco guía), más pequeño = más rápido
+            const vw = video.videoWidth, vh = video.videoHeight;
+            const cw = Math.round(vw * 0.9), ch = Math.round(vh * 0.5);
+            const k = Math.min(1, 800 / cw);
+            lienzo.width = Math.round(cw * k); lienzo.height = Math.round(ch * k);
+            lienzo.getContext("2d", { willReadFrequently: true })!.drawImage(video, (vw - cw) / 2, (vh - ch) / 2, cw, ch, 0, 0, lienzo.width, lienzo.height);
+            code = zx!.decodificar(lienzo);
+          }
+        } catch { /* sigue intentando */ }
+        if (code && vivo) { vivo = false; try { navigator.vibrate?.(60); } catch { /* iOS no vibra */ } onCode(code); break; }
+        await new Promise((ok) => setTimeout(ok, nativo ? 200 : 120));
+      }
+    };
+    void bucle();
+  } catch (e) {
+    parar();
+    throw e;
+  }
+  const pista = stream.getVideoTracks()[0];
+  const linterna = !!(pista && (pista.getCapabilities?.() as { torch?: boolean } | undefined)?.torch);
+  const encender = async (on: boolean) => {
+    try { await pista.applyConstraints({ advanced: [{ torch: on } as MediaTrackConstraintSet] }); return on; } catch { return false; }
   };
-  void bucle();
-  return () => {
-    vivo = false;
-    stream.getTracks().forEach((t) => t.stop());
-    video.srcObject = null;
-  };
+  return { parar, linterna, encender };
 }

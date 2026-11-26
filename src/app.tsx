@@ -2,20 +2,23 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Ajustes } from "./ajustes";
 import { Alimentos } from "./alimentos";
-import { useIA } from "./analizar";
+import { crearBorrador, useIA } from "./analizar";
+import { reducirImagen } from "./ai";
 import { type Draft, draftVacio, itemDe, useDatos } from "./data";
 import { Escaner } from "./escaner";
 import { Hoy } from "./hoy";
 import { ConfirmDialog, Toast, toast } from "./kit";
+import { Resumen } from "./resumen";
 import { Revision } from "./revision";
 import { Semana } from "./semana";
 import type { Fav, Food, Meal } from "./types";
 import { isoDate, uid } from "./util";
 
-type Tab = "hoy" | "semana" | "alimentos" | "ajustes";
+type Tab = "resumen" | "hoy" | "semana" | "alimentos" | "ajustes";
 const I = (d: string) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={d} /></svg>;
 const TABS: { id: Tab; label: string; icon: preact.JSX.Element }[] = [
-  { id: "hoy", label: "Hoy", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /></svg> },
+  { id: "resumen", label: "Resumen", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /></svg> },
+  { id: "hoy", label: "Hoy", icon: I("M5 7h14M5 12h14M5 17h8") },
   { id: "semana", label: "Semana", icon: I("M5 20V11M10 20V5M15 20v-7M20 20V8") },
   { id: "alimentos", label: "Alimentos", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg> },
   { id: "ajustes", label: "Más", icon: <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="1.9" /><circle cx="12" cy="12" r="1.9" /><circle cx="18.5" cy="12" r="1.9" /></svg> },
@@ -24,10 +27,12 @@ const TABS: { id: Tab; label: string; icon: preact.JSX.Element }[] = [
 export default function App() {
   const datos = useDatos();
   const ia = useIA(datos);
-  const [tab, setTab] = useState<Tab>("hoy");
+  const [tab, setTab] = useState<Tab>("resumen");
   const [fecha, setFecha] = useState(isoDate());
   const [escaner, setEscaner] = useState(false);
   const [borrando, setBorrando] = useState(false);
+  const [foco, setFoco] = useState(0);
+  const [fotoBusy, setFotoBusy] = useState(false);
   const hoyRef = useRef(isoDate());
   const rev = datos.borrador.rev;
 
@@ -42,6 +47,12 @@ export default function App() {
     document.addEventListener("visibilitychange", on);
     return () => document.removeEventListener("visibilitychange", on);
   }, []);
+
+  // Gemini ya no ofrece los modelos 2.5 a claves nuevas: quien lo tuviera guardado pasa al valor por defecto
+  useEffect(() => {
+    const m = datos.ajustes.modelos.gemini;
+    if (m && /^gemini-2\./.test(m)) datos.setAjustes((a) => ({ ...a, modelos: { ...a.modelos, gemini: "" } }));
+  }, [datos.ajustes.modelos.gemini]);
 
   const abrir = (d: Draft) => datos.setBorrador((b) => ({ ...b, rev: d }));
   const setDraft = (f: (d: Draft) => Draft) => datos.setBorrador((b) => ({ ...b, rev: b.rev ? f(b.rev) : b.rev }));
@@ -70,6 +81,29 @@ export default function App() {
     toast(d.editId ? "Cambios guardados." : "Guardado en " + (d.toma === "otro" ? "tu día" : d.toma) + ".");
   }
 
+  /** Foto del plato → Gemini (u otro proveedor activo) → «Tu comida» editable. */
+  async function analizarFoto(f: File) {
+    if (!ia.activa) {
+      toast("Para analizar fotos conecta Gemini: pega tu clave gratis en Más → Inteligencia artificial.", true);
+      setTab("ajustes");
+      return;
+    }
+    setFotoBusy(true);
+    try {
+      const img = await reducirImagen(f);
+      const d = await crearBorrador({ texto: datos.borrador.texto, imagenes: [img], datos, ia, fecha });
+      if (!d.items.length && !d.pend.length) d.iaError = d.iaError ?? "No he reconocido nada en la foto. Prueba con otra o escribe lo que hay en el plato.";
+      abrir(d);
+    } catch (err) {
+      toast((err as Error).message || "No se pudo leer la foto.", true);
+    }
+    setFotoBusy(false);
+  }
+  function anadirComida() {
+    setTab("hoy");
+    setFoco((n) => n + 1);
+  }
+
   function usarProducto(f: Food) {
     datos.setPropios((l) => (l.some((x) => x.id === f.id) ? l : [f, ...l]));
     const d = draftVacio(fecha, "producto");
@@ -90,9 +124,13 @@ export default function App() {
   return (
     <>
       <main class="areas">
+        <section id="area-resumen" class="area" role="tabpanel" aria-labelledby="tab-resumen" hidden={tab !== "resumen"}>
+          <h1 class="vh">Resumen</h1>
+          <Resumen datos={datos} irAHoy={() => { setFecha(isoDate()); setTab("hoy"); }} anadir={() => { setFecha(isoDate()); anadirComida(); }} foto={analizarFoto} fotoBusy={fotoBusy} />
+        </section>
         <section id="area-hoy" class="area" role="tabpanel" aria-labelledby="tab-hoy" hidden={tab !== "hoy"}>
           <h1 class="vh">Hoy</h1>
-          <Hoy datos={datos} fecha={fecha} setFecha={setFecha} abrir={abrir} ia={ia} abrirEscaner={() => setEscaner(true)} />
+          <Hoy datos={datos} fecha={fecha} setFecha={setFecha} abrir={abrir} ia={ia} abrirEscaner={() => setEscaner(true)} foco={foco} onFoto={analizarFoto} fotoBusy={fotoBusy} />
         </section>
         <section id="area-semana" class="area" role="tabpanel" aria-labelledby="tab-semana" hidden={tab !== "semana"}>
           <h1 class="vh">Semana</h1>

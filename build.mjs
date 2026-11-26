@@ -15,9 +15,13 @@ const options = {
   logLevel: "info",
 };
 
+// Decodificador ZXing (respaldo del escáner en iOS): paquete aparte que se carga bajo demanda.
+const zxing = { ...options, entryPoints: ["src/zxing-entry.ts"], outfile: "zxing.js", jsx: undefined, jsxImportSource: undefined, alias: undefined };
+
 if (process.argv.includes("--watch")) {
-  const ctx = await context(options);
-  await ctx.watch();
+  await (await context(options)).watch();
+  await (await context(zxing)).watch();
 } else {
   await build(options);
+  await build(zxing);
 }

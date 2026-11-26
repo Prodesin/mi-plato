@@ -6,6 +6,7 @@ import { type Datos, type Draft, itemDe } from "./data";
 import { BuscadorAlimento, FormAlimento, FUENTE_TXT, IG_TXT } from "./forms";
 import { Button, Input, Segmented, useGrokTheme, toast } from "./kit";
 import { racionLabel } from "./foods";
+import { CHIPS_RACION, foodDeItem, unidadDe } from "./raciones";
 import { calcGramos } from "./parser";
 import type { Accion, Correccion, Food, Item, Toma } from "./types";
 import { TOMAS, itemTotales, sumar, tomaPorHora } from "./types";
@@ -196,22 +197,15 @@ export function Revision({ draft, setDraft, datos, onSave, onCancel, onDelete }:
   );
 }
 
-/** Gramos de una «ración» para el selector: la casera del alimento; si no hay, lo que traía el alimento al apuntarlo (o 100 g). */
-function unidadDe(f: Food | undefined, g0: number): number {
-  const r = f?.rac[0]?.g;
-  if (!r || r <= 0) return Math.max(10, Math.round(g0 / 5) * 5) || 100;
-  // cantidad inicial poco redonda y cerca de 1 ración (p. ej. una tostada de 35 g con rebanada de 30 g): esa cantidad es «1 ración»
-  const n0 = g0 / r;
-  const cerca = Math.max(0.5, Math.round(n0 * 2) / 2);
-  return n0 <= 1.5 && Math.abs(n0 - cerca) >= 0.06 ? g0 / cerca : r;
-}
-const CHIPS = [0.5, 1, 2, 3];
+const CHIPS = CHIPS_RACION;
 
 function ItemRow({ it, catalogo, onQuitar, onChangeG, onUsarBase }: { it: Item; catalogo: Map<string, Food>; onQuitar: () => void; onChangeG: (g: number) => void; onUsarBase: () => void }) {
   const [abierto, setAbierto] = useState(false);
-  const f = it.foodId ? catalogo.get(it.foodId) : undefined;
-  const g0 = useRef(it.g);
-  const unidad = unidadDe(f, g0.current);
+  const f = foodDeItem(it, catalogo);
+  const base = useRef({ clave: "", g: it.g });
+  const clave = `${it.foodId ?? ""}|${it.rac?.sing ?? ""}`;
+  if (base.current.clave !== clave) base.current = { clave, g: it.g }; // otro alimento (p. ej. «Hacerlo»): nueva unidad
+  const unidad = unidadDe(f, base.current.g);
   const t = itemTotales(it);
   const n = it.g / unidad;
   const enRejilla = Math.abs(n - Math.round(n * 2) / 2) < 0.06;

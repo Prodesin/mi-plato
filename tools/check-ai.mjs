@@ -54,7 +54,7 @@ for (const prov of ["anthropic", "gemini", "xai", "openai"]) {
   const c = calls[0]; const h = c.init.headers; const b = JSON.parse(c.init.body);
   if (r.items.length !== 1) fail(prov + ": respuesta no interpretada");
   if (prov === "anthropic") { if (c.url !== "https://api.anthropic.com/v1/messages" || h["x-api-key"] !== "K" || h["anthropic-version"] !== "2023-06-01" || h["anthropic-dangerous-direct-browser-access"] !== "true") fail("anthropic: cabeceras/URL"); if (b.model !== "claude-haiku-5-5" || b.messages[0].content[0].source?.media_type !== "image/jpeg") fail("anthropic: cuerpo"); }
-  if (prov === "gemini") { if (!c.url.includes("gemini-2.5-flash:generateContent") || h["x-goog-api-key"] !== "K" || h.Authorization) fail("gemini: cabeceras/URL"); if (b.generationConfig.responseMimeType !== "application/json" || !b.contents[0].parts[0].inline_data) fail("gemini: cuerpo"); }
+  if (prov === "gemini") { if (!c.url.includes("gemini-3.5-flash-lite:generateContent") || h["x-goog-api-key"] !== "K" || h.Authorization) fail("gemini: cabeceras/URL"); if (b.generationConfig.responseMimeType !== "application/json" || !b.contents[0].parts[0].inline_data) fail("gemini: cuerpo"); }
   if (prov === "xai") { if (c.url !== "https://api.x.ai/v1/chat/completions" || h.Authorization !== "Bearer K" || b.model !== "grok-4.3" || b.response_format.type !== "json_object" || !b.messages[1].content[1].image_url.url.startsWith("data:image/jpeg")) fail("xai: petición"); }
   if (prov === "openai") { if (c.url !== "https://api.openai.com/v1/chat/completions" || h.Authorization !== "Bearer K" || b.model !== "gpt-5-mini" || b.response_format.type !== "json_object") fail("openai: petición"); }
 }
@@ -63,6 +63,20 @@ globalThis.fetch = async () => { throw new TypeError("Failed to fetch"); };
 try { await ai.llamarIA({ proveedor: "openai", clave: "K", modelo: "" }, "s", "u"); fail("debía fallar"); } catch (e) { if (!/No se pudo conectar: revisa la clave/.test(e.message)) fail("mensaje de error poco amable: " + e.message); }
 globalThis.fetch = async () => ({ ok: false, status: 401, text: async () => "{}" });
 try { await ai.llamarIA({ proveedor: "xai", clave: "K", modelo: "" }, "s", "u"); } catch (e) { if (!/clave/.test(e.message)) fail("401 sin mensaje de clave"); }
+// mensajes por código HTTP
+for (const [st, body, rx, prov] of [[400, '{"error":{"message":"API key not valid. Please pass a valid API key."}}', /clave de Gemini no es válida/, "gemini"], [429, "{}", /Sin cuota/, "gemini"], [503, "{}", /saturado: inténtalo en un momento/, "gemini"], [403, "{}", /clave/, "gemini"]]) {
+  globalThis.fetch = async () => ({ ok: false, status: st, text: async () => body });
+  try { await ai.llamarIA({ proveedor: prov, clave: "K", modelo: "" }, "s", "u"); fail("debía fallar " + st); } catch (e) { if (!rx.test(e.message)) fail(`HTTP ${st}: mensaje «${e.message}»`); }
+}
+// ración casera de la IA: «2 huevos» → rac huevo de 60 g
+{
+  const r = ai.validarRespuesta(JSON.stringify({ ...OK, items: [{ ...OK.items[0], nombre: "Cosa rara", gramos: 120, racion: "un huevo", raciones: 2 }] }));
+  if (r.items[0].rac?.sing !== "huevo" || r.items[0].rac?.g !== 60) fail("ración casera de la IA mal interpretada: " + JSON.stringify(r.items[0].rac));
+  const it = ai.itemsDeIA(r, FOODS);
+  if (it[0].foodId == null && it[0].rac?.g !== 60) fail("el item de IA debe conservar su ración casera");
+}
+if (ai.provInfo("gemini").defecto !== "gemini-3.5-flash-lite") fail("modelo por defecto de Gemini");
+if (!ai.GEMINI_MODELOS.some((m) => m.id === "gemini-3.8-flash")) fail("falta gemini-3.8-flash");
 // orden y etiquetas de proveedores
 const ids = ai.PROVEEDORES.map((p) => p.id).join(",");
 if (ids !== "anthropic,gemini,xai,openai") fail("orden de proveedores: " + ids);

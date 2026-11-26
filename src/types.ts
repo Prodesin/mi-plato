@@ -35,6 +35,7 @@ export type Item = {
   aviso?: string; // desviación frente a la base local
   cambiado?: boolean; // Jorge ha corregido la cantidad
   fiEst?: boolean; // fibra estimada (no venía en la fuente)
+  rac?: { sing: string; g: number }; // ración casera propia (p. ej. la que da la IA: «huevo» = 60 g)
 };
 
 export type Meal = {

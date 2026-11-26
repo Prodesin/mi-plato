@@ -9,9 +9,14 @@ import { estimarFibra, fmt, uid } from "./util";
 export type ProvInfo = { id: Proveedor; nombre: string; defecto: string; claveUrl: string; coste: string; nota: string };
 export const PROVEEDORES: ProvInfo[] = [
   { id: "anthropic", nombre: "Claude (Anthropic) — recomendado", defecto: "claude-haiku-5-5", claveUrl: "https://console.anthropic.com/settings/keys", coste: "≈ 0,2–0,5 céntimos por análisis con foto (modelo Haiku)", nota: "Hace falta una clave de API de console.anthropic.com. La suscripción de Claude o de Claude Code NO sirve." },
-  { id: "gemini", nombre: "Gemini (Google) — tiene nivel gratuito", defecto: "gemini-2.5-flash", claveUrl: "https://aistudio.google.com/apikey", coste: "Gratis dentro del límite diario; si lo superas, ≈ 0,1–0,3 céntimos por análisis", nota: "Clave gratuita desde Google AI Studio. En el nivel gratuito Google puede usar lo que envíes para mejorar sus productos." },
+  { id: "gemini", nombre: "Gemini (Google) — tiene nivel gratuito", defecto: "gemini-3.5-flash-lite", claveUrl: "https://aistudio.google.com/apikey", coste: "Gratis dentro del límite diario; si lo superas, ≈ 0,1–0,3 céntimos por análisis", nota: "Clave gratuita desde Google AI Studio. En el nivel gratuito Google puede usar lo que envíes para mejorar sus productos." },
   { id: "xai", nombre: "xAI (Grok)", defecto: "grok-4.3", claveUrl: "https://console.x.ai", coste: "≈ 0,3–1 céntimo por análisis (según modelo)", nota: "Clave de API de console.x.ai." },
   { id: "openai", nombre: "OpenAI", defecto: "gpt-5-mini", claveUrl: "https://platform.openai.com/api-keys", coste: "≈ 0,1–0,4 céntimos por análisis con gpt-5-mini", nota: "Clave de API de platform.openai.com (la suscripción de ChatGPT no sirve)." },
+];
+/** Modelos de Gemini que ofrece Ajustes (los 2.5 ya no están disponibles para claves nuevas). */
+export const GEMINI_MODELOS = [
+  { id: "gemini-3.5-flash-lite", label: "3.5 Flash-Lite · rápido y gratis" },
+  { id: "gemini-3.8-flash", label: "3.8 Flash · más preciso" },
 ];
 export const provInfo = (id: Proveedor): ProvInfo => PROVEEDORES.find((p) => p.id === id) ?? PROVEEDORES[0];
 
@@ -49,30 +54,33 @@ CÓMO ESTIMAR: usa raciones españolas reales (1 huevo ≈ 60 g, 1 rebanada de p
 CORRECCIONES: máximo 4, la más importante primero, concretas (qué añadir, quitar o cambiar y cuánto) y cada una con su porqué en una frase sencilla. Usa tipo «ok» cuando algo está bien.
 
 Responde SOLO con un JSON válido, sin texto fuera de él, con exactamente esta forma:
-{"items":[{"nombre":str,"gramos":num,"kcal":num,"proteina":num,"hidratos":num,"azucares":num,"fibra":num o null,"grasa":num,"ig":"bajo|medio|alto","confianza":"alta|media|baja","nota":str opcional}],"correcciones":[{"tipo":"ok|aviso|alerta","texto":str}],"resumen":str}
-En «ig» indica cuánto sube el azúcar en sangre (bajo = poco, medio = algo, alto = mucho). «resumen» es una frase corta y amable.`;
+{"items":[{"nombre":str,"gramos":num,"kcal":num,"proteina":num,"hidratos":num,"azucares":num,"fibra":num o null,"grasa":num,"racion":str,"raciones":num,"ig":"bajo|medio|alto","confianza":"alta|media|baja","nota":str opcional}],"correcciones":[{"tipo":"ok|aviso|alerta","texto":str}],"resumen":str}
+En «racion» pon el nombre casero de UNA ración en singular («huevo», «rebanada de pan», «plato», «taza», «yogur», «lata») y en «raciones» cuántas hay (½, 1, 2…); «gramos» es el total. Pon nombres de alimento caseros y cortos («Tostada de pan integral», «Café con leche»). En «ig» indica cuánto sube el azúcar en sangre (bajo = poco, medio = algo, alto = mucho). «resumen» es una frase corta y amable.`;
 }
 
 /* ---------------- Llamadas ---------------- */
 export class ErrorIA extends Error {}
 const TIMEOUT_MS = 30000;
 
-function mensajeHttp(status: number, cuerpo: string): string {
-  if (status === 401 || status === 403) return "La clave no es válida o no tiene permiso. Revísala en Ajustes.";
-  if (status === 429) return "Has llegado al límite de uso del proveedor (o no queda saldo). Prueba más tarde.";
-  if (status === 404 || (status === 400 && /model/i.test(cuerpo))) return "El modelo no existe o no está disponible: pulsa «Cargar modelos» y elige otro.";
+function mensajeHttp(status: number, cuerpo: string, prov?: Proveedor): string {
+  const claveMala = status === 401 || status === 403 || (status === 400 && /API key not valid|API_KEY_INVALID|invalid api key|incorrect api key/i.test(cuerpo));
+  if (claveMala) return prov === "gemini" ? "La clave de Gemini no es válida. Cópiala otra vez desde Google AI Studio." : "La clave no es válida o no tiene permiso. Revísala en Ajustes.";
+  if (status === 429) return "Sin cuota: has llegado al límite de uso (o no queda saldo). Prueba más tarde.";
+  if (status === 503 || status === 529) return "El servicio está saturado: inténtalo en un momento.";
+  if (status === 404 || (status === 400 && /model/i.test(cuerpo))) return "El modelo no existe o no está disponible: elige otro en Ajustes.";
   if (status === 400) return "El proveedor no ha aceptado la petición (imagen demasiado grande o modelo sin visión).";
-  if (status >= 500) return "El proveedor tiene problemas ahora mismo. Prueba en unos minutos.";
+  if (status >= 500) return "El proveedor tiene problemas ahora mismo. Inténtalo en un momento.";
   return `El proveedor ha respondido con un error (${status}).`;
 }
 
-async function http(url: string, init: RequestInit): Promise<any> {
+async function http(url: string, init: RequestInit, prov?: Proveedor): Promise<any> {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) throw new ErrorIA("Sin conexión: revisa internet e inténtalo de nuevo.");
   const ctl = new AbortController();
   const t = window.setTimeout(() => ctl.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(url, { ...init, signal: ctl.signal });
     const txt = await res.text();
-    if (!res.ok) throw new ErrorIA(mensajeHttp(res.status, txt));
+    if (!res.ok) throw new ErrorIA(mensajeHttp(res.status, txt, prov));
     try { return JSON.parse(txt); } catch { throw new ErrorIA("La respuesta del proveedor no se pudo leer."); }
   } catch (e) {
     if (e instanceof ErrorIA) throw e;
@@ -97,7 +105,7 @@ export async function llamarIA(cfg: Cfg, sistema: string, usuario: string, image
         method: "POST",
         headers: { "content-type": "application/json", "x-api-key": cfg.clave.trim(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({ model: modelo, max_tokens: 1800, system: sistema, messages: [{ role: "user", content }] }),
-      });
+      }, "anthropic");
       return (r.content ?? []).filter((x: any) => x.type === "text").map((x: any) => x.text).join("");
     }
     case "gemini": {
@@ -107,7 +115,7 @@ export async function llamarIA(cfg: Cfg, sistema: string, usuario: string, image
         method: "POST",
         headers: { "content-type": "application/json", "x-goog-api-key": cfg.clave.trim() },
         body: JSON.stringify({ systemInstruction: { parts: [{ text: sistema }] }, contents: [{ role: "user", parts }], generationConfig: { responseMimeType: "application/json" } }),
-      });
+      }, "gemini");
       return (r.candidates?.[0]?.content?.parts ?? []).map((x: any) => x.text ?? "").join("");
     }
     case "xai":
@@ -118,7 +126,7 @@ export async function llamarIA(cfg: Cfg, sistema: string, usuario: string, image
         method: "POST",
         headers: { "content-type": "application/json", Authorization: `Bearer ${cfg.clave.trim()}` },
         body: JSON.stringify({ model: modelo, messages: [{ role: "system", content: sistema }, { role: "user", content }], response_format: { type: "json_object" } }),
-      });
+      }, cfg.proveedor);
       return r.choices?.[0]?.message?.content ?? "";
     }
   }
@@ -147,7 +155,7 @@ export async function probarConexion(cfg: Cfg): Promise<void> {
 }
 
 /* ---------------- Validación del esquema ---------------- */
-export type IAItem = { nombre: string; gramos: number; kcal: number; proteina: number; hidratos: number; azucares: number; fibra: number; fibraEst?: boolean; grasa: number; ig: IG; confianza: "alta" | "media" | "baja"; nota?: string };
+export type IAItem = { nombre: string; gramos: number; kcal: number; proteina: number; hidratos: number; azucares: number; fibra: number; fibraEst?: boolean; grasa: number; ig: IG; confianza: "alta" | "media" | "baja"; nota?: string; rac?: { sing: string; g: number } };
 export type IACorr = { tipo: "ok" | "aviso" | "alerta"; texto: string };
 export type IAResultado = { items: IAItem[]; correcciones: IACorr[]; resumen: string };
 
@@ -176,7 +184,9 @@ export function validarRespuesta(txt: string, permitirVacio = false): IAResultad
     const azc = Math.min(az, h);
     const fiDesconocida = fi0 == null || (fi0 === 0 && h - azc >= 10);
     const fi = fiDesconocida ? estimarFibra(h / gramos * 100, azc / gramos * 100) * gramos / 100 : Math.min(fi0, h);
-    items.push({ nombre: x.nombre.trim(), gramos, kcal, proteina: p, hidratos: h, azucares: azc, fibra: fi, fibraEst: fiDesconocida && h >= 5 ? true : undefined, grasa: gr, ig: x.ig, confianza: x.confianza, nota: typeof x.nota === "string" ? x.nota : undefined });
+    const rn = num(x?.raciones);
+    const rac = typeof x?.racion === "string" && x.racion.trim() && rn != null && rn > 0 && rn <= 20 ? { sing: x.racion.trim().toLowerCase().replace(/^(un|una|1)\s+/, ""), g: Math.round((gramos / rn) * 10) / 10 } : undefined;
+    items.push({ nombre: x.nombre.trim(), gramos, kcal, proteina: p, hidratos: h, azucares: azc, fibra: fi, fibraEst: fiDesconocida && h >= 5 ? true : undefined, grasa: gr, ig: x.ig, confianza: x.confianza, nota: typeof x.nota === "string" ? x.nota : undefined, rac });
   }
   if (!items.length && !permitirVacio) throw new ErrorIA("La IA no ha reconocido ningún alimento.");
   const correcciones: IACorr[] = [];
@@ -205,6 +215,7 @@ export function itemsDeIA(r: IAResultado, catalogo: Food[]): Item[] {
       if (dif > 0.35 || difP > 0.5) it.aviso = `La IA da ${fmt(it.por100.kcal)} kcal por 100 g y la base española ${fmt(f.kcal)} (${f.n}). Revisa la cantidad o usa el valor de la base.`;
       it.foodId = f.id;
     }
+    if (x.rac) it.rac = x.rac; // la ración casera que ve la IA en el plato («2 tostadas») manda sobre la genérica
     return it;
   });
 }

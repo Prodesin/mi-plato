@@ -8,6 +8,7 @@ Publicada en <https://prodesin.github.io/mi-plato/>. Apps hermanas: [Mi entrenad
 
 ## Funciones
 
+- **Resumen** (pantalla inicial): saludo, un anillo doble (calorías y proteína, con semáforo), una frase de estado («Vas bien», «Te falta proteína»), un consejo, **Añadir comida**, **Foto** del plato, «Ver el día» y los últimos 7 días.
 - **Hoy**: anillos de calorías y proteína, barras de hidratos y fibra, «Te quedan 600 kcal y 40 g de proteína para la cena», la caja **«¿Qué estás comiendo?»** (texto, dictado, foto, código de barras), atajos con lo de siempre / favoritos / repetir comidas de otros días, **«Qué comer ahora»** (2-3 opciones sencillas con ingredientes básicos, priorizando lo que ya sueles comer) y las comidas del día con sus correcciones.
 - **Revisión editable** antes de guardar: cada alimento con sus gramos, `−`/`+`, `½`, `×1,5`, `×2`; la fuente de cada valor (Base / Open Food Facts / IA / Propio); las correcciones se recalculan en vivo y muchas tienen un botón «Hacerlo». Si corriges la ración de un alimento, la app la recuerda como tu ración habitual. Toma automática por hora (antes de 11:30 desayuno, 16:30 comida, 20:00 merienda, luego cena), glucosa (antes / 2 h después) y nota opcionales, y «guardar como favorito».
 - **Semana**: barras por día con banda de objetivo (calorías, proteína, hidratos, fibra), días en objetivo, medias, errores que se repiten («Desayunos flojos de proteína: 4 de 5…», «3 de 5 cenas con demasiados hidratos», «fines de semana +400 kcal», «poca fibra»…), lo que ha ido bien, 3 cambios para la semana siguiente y, si hay datos, relación entre comidas y glucosas altas. Se puede navegar a semanas anteriores.
@@ -35,7 +36,7 @@ Funciona sin conexión (salvo IA, Open Food Facts y Coco, que necesitan internet
 | Proveedor | Clave | Modelo por defecto | Coste aproximado por análisis |
 |---|---|---|---|
 | **Claude (Anthropic) — recomendado** | [console.anthropic.com](https://console.anthropic.com/settings/keys) (la suscripción de Claude/Claude Code **no** sirve) | `claude-haiku-5-5` | 0,2–0,5 céntimos con foto |
-| **Gemini (Google) — tiene nivel gratuito** | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) | `gemini-2.5-flash` | gratis dentro del límite diario |
+| **Gemini (Google) — tiene nivel gratuito** | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) | `gemini-3.5-flash-lite` (opción `gemini-3.8-flash`) | gratis dentro del límite diario |
 | xAI (Grok) | [console.x.ai](https://console.x.ai) | `grok-4.3` | 0,3–1 céntimo |
 | OpenAI | [platform.openai.com](https://platform.openai.com/api-keys) | `gpt-5-mini` | 0,1–0,4 céntimos |
 
@@ -65,7 +66,7 @@ Los Atajos no tienen CORS, por eso funcionan donde el navegador no.
 
 ## Escáner de productos
 
-Con cámara si el navegador tiene `BarcodeDetector` (Chrome/Android). En iOS Safari no existe: haz una foto del código (se intenta leer) o **escribe el EAN** (los números bajo las barras). Se consulta `https://world.openfoodfacts.org/api/v2/product/{ean}.json` (tiene productos Hacendado y Eroski) y se crea el alimento con su nutrición por 100 g y su ración. También se puede buscar por nombre (España). Los productos usados quedan en *Alimentos → Propios*.
+Cámara trasera con vista previa y marco guía, lectura continua y linterna si el móvil la tiene. Usa `BarcodeDetector` si existe (Chrome/Android) y, si no (**Safari en iOS**), el decodificador **ZXing** (`zxing.js`, empaquetado con esbuild, sin CDN y guardado por el service worker; se carga solo al abrir el escáner). Si no das permiso a la cámara, puedes hacer una foto del código o **escribir el EAN**. Se consulta `https://world.openfoodfacts.org/api/v2/product/{ean}.json` (tiene productos Hacendado y Eroski) y se crea el alimento con su nutrición por 100 g y su ración. También se puede buscar por nombre (España). Los productos usados quedan en *Alimentos → Propios*.
 
 ## Copia de seguridad
 
@@ -103,7 +104,7 @@ tools/
 
 ```sh
 npm install
-npm run build      # genera app.js
+npm run build      # genera app.js y zxing.js (escáner para iOS)
 npx tsc --noEmit   # comprobar tipos
 npm test           # pruebas de alimentos, parser, coach e IA
 ```

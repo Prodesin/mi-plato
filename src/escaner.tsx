@@ -1,9 +1,12 @@
-/* Escáner de productos: cámara (si el navegador lee códigos), foto del código o EAN a mano, y búsqueda por nombre en Open Food Facts. */
+/* Escáner de productos: cámara trasera con lector (nativo o ZXing en iOS), foto del código, EAN a mano y búsqueda por nombre en Open Food Facts. */
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Button, Input } from "./kit";
-import { barcodeSoportado, buscarOFF, codigoDeFoto, eanValido, iniciarCamara, limpiarEAN, productoPorEAN } from "./off";
+import { type Camara, buscarOFF, camaraDisponible, codigoDeFoto, eanValido, iniciarCamara, limpiarEAN, productoPorEAN } from "./off";
 import type { Food } from "./types";
 import { fmt } from "./util";
+
+const MSG_DENEGADA = "No me has dado permiso para usar la cámara. Puedes activarlo en Ajustes de Safari → Cámara, o usar una de las otras dos formas: hacer una foto del código o escribir los números que hay bajo las barras.";
+const MSG_SIN_CAMARA = "No he podido abrir la cámara. Haz una foto del código o escribe los números que hay bajo las barras.";
 
 export function Escaner({ onUsar, onCerrar }: { onUsar: (f: Food) => void; onCerrar: () => void }) {
   const [ean, setEan] = useState("");
@@ -12,11 +15,18 @@ export function Escaner({ onUsar, onCerrar }: { onUsar: (f: Food) => void; onCer
   const [msg, setMsg] = useState("");
   const [res, setRes] = useState<Food[]>([]);
   const [camara, setCamara] = useState(false);
+  const [luz, setLuz] = useState<{ ok: boolean; on: boolean }>({ ok: false, on: false });
   const video = useRef<HTMLVideoElement>(null);
-  const parar = useRef<(() => void) | null>(null);
+  const cam = useRef<Camara | null>(null);
   const file = useRef<HTMLInputElement>(null);
+  const vivo = useRef(true);
 
-  useEffect(() => () => parar.current?.(), []);
+  useEffect(() => {
+    vivo.current = true;
+    if (camaraDisponible()) void abrirCamara();
+    else setMsg(MSG_SIN_CAMARA);
+    return () => { vivo.current = false; cam.current?.parar(); cam.current = null; };
+  }, []);
 
   async function porEAN(code: string) {
     const c = limpiarEAN(code);
@@ -24,8 +34,9 @@ export function Escaner({ onUsar, onCerrar }: { onUsar: (f: Food) => void; onCer
     setCargando(true); setMsg(""); setRes([]);
     try {
       const f = await productoPorEAN(c);
+      if (!vivo.current) return;
       if (!f) setMsg("Ese producto no está en Open Food Facts. Puedes crearlo a mano en «Alimentos → Propios».");
-      else setRes([f]);
+      else { cerrarCamara(); onUsar(f); return; }
     } catch (e) { setMsg((e as Error).message); }
     setCargando(false);
   }
@@ -43,24 +54,36 @@ export function Escaner({ onUsar, onCerrar }: { onUsar: (f: Food) => void; onCer
     setMsg("");
     setCamara(true);
     await new Promise((ok) => setTimeout(ok, 30));
+    if (!video.current) return;
     try {
-      parar.current = await iniciarCamara(video.current!, (code) => { parar.current?.(); parar.current = null; setCamara(false); setEan(code); void porEAN(code); });
-    } catch {
+      const c = await iniciarCamara(video.current, (code) => { cerrarCamara(); setEan(code); void porEAN(code); });
+      if (!vivo.current) { c.parar(); return; }
+      cam.current = c;
+      setLuz({ ok: c.linterna, on: false });
+    } catch (e) {
       setCamara(false);
-      setMsg("No he podido abrir la cámara. Haz una foto del código o escríbelo a mano.");
+      const n = (e as Error)?.name;
+      setMsg(n === "NotAllowedError" || n === "SecurityError" ? MSG_DENEGADA : MSG_SIN_CAMARA);
     }
   }
-  function cerrarCamara() { parar.current?.(); parar.current = null; setCamara(false); }
+  function cerrarCamara() { cam.current?.parar(); cam.current = null; setCamara(false); setLuz({ ok: false, on: false }); }
+  async function alternarLuz() {
+    if (!cam.current) return;
+    const on = await cam.current.encender(!luz.on);
+    setLuz({ ok: true, on });
+  }
   async function deFoto(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
     const f = input.files?.[0];
     input.value = "";
     if (!f) return;
+    setCargando(true); setMsg("");
     try {
       const code = await codigoDeFoto(f);
-      if (code) { setEan(code); void porEAN(code); }
-      else setMsg(barcodeSoportado() ? "No he visto ningún código en la foto. Prueba de más cerca y con buena luz." : "Este navegador no sabe leer códigos de una foto: escribe los números que hay bajo las barras.");
+      if (code) { setEan(code); await porEAN(code); return; }
+      setMsg("No he visto ningún código en la foto. Prueba de más cerca, con buena luz y con las barras rectas.");
     } catch { setMsg("No se pudo leer la foto. Escribe el código a mano."); }
+    setCargando(false);
   }
 
   return (
@@ -70,15 +93,22 @@ export function Escaner({ onUsar, onCerrar }: { onUsar: (f: Food) => void; onCer
           <p class="k-text muted">Funciona con productos de supermercado (Hacendado, Eroski…) que estén en Open Food Facts.</p></header>
         <section class="ep-card">
           {camara ? (
-            <div class="cam"><video ref={video} muted playsInline aria-label="Cámara" /><div class="btn-row"><Button label="Cerrar cámara" onClick={cerrarCamara} /></div></div>
+            <div class="cam" aria-live="polite">
+              <div class="cam__view">
+                <video ref={video} muted playsInline aria-label="Cámara trasera" />
+                <div class="cam__frame" aria-hidden="true"><i /></div>
+                {luz.ok ? <button type="button" class={`cam__torch${luz.on ? " on" : ""}`} aria-pressed={luz.on} aria-label="Linterna" onClick={alternarLuz}>🔦</button> : null}
+              </div>
+              <p class="k-text muted tiny cam__hint">Pon el código dentro del marco. Se lee solo.</p>
+              <div class="btn-row"><Button label="Cerrar cámara" onClick={cerrarCamara} /></div>
+            </div>
           ) : (
             <div class="btn-row">
-              {barcodeSoportado() ? <Button label="Abrir la cámara" variant="primary" onClick={abrirCamara} /> : null}
-              <Button label="Hacer foto del código" variant={barcodeSoportado() ? "default" : "primary"} onClick={() => file.current?.click()} />
-              <input ref={file} type="file" accept="image/*" capture="environment" hidden onChange={deFoto} />
+              {camaraDisponible() ? <Button label="Abrir la cámara" variant="primary" onClick={abrirCamara} /> : null}
+              <Button label="Hacer foto del código" variant={camaraDisponible() ? "default" : "primary"} onClick={() => file.current?.click()} />
             </div>
           )}
-          {!barcodeSoportado() ? <p class="k-text muted tiny">En este móvil la cámara no lee códigos sola: escríbelo a mano (los números bajo las barras).</p> : null}
+          <input ref={file} type="file" accept="image/*" capture="environment" hidden onChange={deFoto} />
           <div class="row-in">
             <Input label="Código de barras (EAN)" type="number" value={ean} onChange={setEan} placeholder="8480000123456" />
             <Button label="Buscar" onClick={() => porEAN(ean)} disabled={cargando} />

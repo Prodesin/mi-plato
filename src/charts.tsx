@@ -14,12 +14,8 @@ export function Anillo({ valor, objetivo, etiqueta, unidad, color, minimo }: { v
       <svg viewBox="0 0 100 100" width="100%" height="100%">
         <circle cx="50" cy="50" r={R} fill="none" stroke={th.border.subtle} strokeWidth="9" />
         <circle cx="50" cy="50" r={R} fill="none" stroke={col} strokeWidth="9" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} transform="rotate(-90 50 50)" />
-        {minimo != null ? (() => {
-          const a = (minimo / objetivo) * 2 * Math.PI - Math.PI / 2;
-          return <line x1={50 + (R - 7) * Math.cos(a)} y1={50 + (R - 7) * Math.sin(a)} x2={50 + (R + 7) * Math.cos(a)} y2={50 + (R + 7) * Math.sin(a)} stroke={th.text.primary} strokeWidth="2" />;
-        })() : null}
       </svg>
-      <div class="ring__t"><b>{fmt(valor)}</b><span>{etiqueta}</span></div>
+      <div class="ring__t"><b>{fmt(valor)}{unidad === "g" ? <small class="ring__u">{"\u00a0g"}</small> : null}</b><span>{etiqueta}</span></div>
     </div>
   );
 }

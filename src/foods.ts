@@ -378,14 +378,9 @@ function pluralNoun(noun: string): string {
   return [plural(w0), ...rest].join(" ");
 }
 
-/** «una lata de atún al natural», «dos huevos», «media ración de arroz» o «unos 100 g de pechuga». */
-export function cantidadTexto(f: Food, grams: number): string {
-  const r = f.rac[0];
+/** Una ración concreta en palabras de casa: «media rebanada de pan», «dos huevos». */
+function textoRacion(f: Food, r: Racion, medio: number): string {
   const nombre = nombreCorto(f);
-  if (!r || grams < 1) return `${Math.round(grams / 5) * 5} g de ${nombre}`;
-  const n = grams / r.g;
-  if (n < 0.4) return `unos ${Math.max(5, Math.round(grams / 5) * 5)} g de ${nombre}`;
-  const medio = Math.round(n * 2) / 2;
   const sing = r.sing;
   const plur = medio > 1;
   const noun = plur ? pluralNoun(sing) : sing;
@@ -395,6 +390,31 @@ export function cantidadTexto(f: Food, grams: number): string {
     if (mismo) return `${cuenta(medio, sing)} ${plur ? pluralNombre(nombre) : nombre}`;
   }
   return `${cuenta(medio, sing)} ${noun} de ${nombre}`;
+}
+const SOLIDOS = new Set(["pan", "bolleria", "galletas", "queso", "embutido", "carne", "pescado", "dulce", "snack", "fruta", "patata"]);
+
+/** «una lata de atún al natural», «dos huevos», «media rebanada de pan» o «un trocito de pan».
+ *  Elige, entre las raciones de casa del alimento, la que da un número más redondo. */
+export function cantidadTexto(f: Food, grams: number): string {
+  const nombre = nombreCorto(f);
+  if (!f.rac.length || grams < 1) return `un poco de ${nombre}`;
+  const BONITOS = [0.5, 1, 1.5, 2, 3, 4];
+  let mejor: { r: Racion; v: number; err: number } | null = null;
+  f.rac.forEach((r, i) => {
+    const n = grams / r.g;
+    for (const v of BONITOS) {
+      const err = Math.abs(n - v) / v + i * 0.02; // ligera preferencia por la ración principal
+      if (!mejor || err < mejor.err) mejor = { r, v, err };
+    }
+  });
+  const m = mejor as { r: Racion; v: number; err: number } | null;
+  if (m && m.err <= 0.22) return textoRacion(f, m.r, m.v);
+  const menor = Math.min(...f.rac.map((r) => r.g));
+  if (grams < menor * 0.45) return `${SOLIDOS.has(f.cat) ? "un trocito" : "un poco"} de ${nombre}`;
+  // número poco redondo: la ración principal redondeada a medias
+  const r0 = f.rac[0];
+  const medio = Math.max(0.5, Math.round((grams / r0.g) * 2) / 2);
+  return textoRacion(f, r0, medio);
 }
 
 /** Texto corto de la ración habitual: «1 lata (52 g)». */

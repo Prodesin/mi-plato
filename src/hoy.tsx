@@ -162,7 +162,7 @@ export function Hoy({ datos, fecha, setFecha, abrir, ia, abrirEscaner }: { datos
         <section class="ep-card day-sum" style={{ order: 2 }} aria-label="Resumen del día">
           <div class="rings">
             <Anillo valor={tot.kcal} objetivo={perfil.kcal} etiqueta="calorías" unidad="kcal" color={th.dataviz.categorical[0]} />
-            <Anillo valor={tot.p} objetivo={perfil.prot} etiqueta="g de proteína" unidad="g" color={th.dataviz.categorical[3]} minimo={perfil.protMin} />
+            <Anillo valor={tot.p} objetivo={perfil.prot} etiqueta="proteína" unidad="g" color={th.dataviz.categorical[3]} />
           </div>
           <div class="bars">
             <Barra etiqueta="Hidratos" texto={`${fmt(tot.c)} de ${fmt(perfil.hcMin)}–${fmt(perfil.hcMax)} g`} valor={tot.c} max={Math.max(perfil.hcMax * 1.2, tot.c)} lo={perfil.hcMin} hi={perfil.hcMax} color={tot.c > perfil.hcMax * 1.05 ? th.text.warning : th.dataviz.categorical[1]} />

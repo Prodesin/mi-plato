@@ -47,6 +47,13 @@ if (!r3.some((c) => /agua/.test(c.texto))) fail("el refresco debe cambiarse por 
 // Comida buena → mensaje positivo
 const r4 = run("200 g de pechuga de pollo a la plancha, ensalada mixta, 40 g de pan integral y aceite", "comida", "14:00");
 if (!r4.some((c) => c.tipo === "ok")) fail("una comida buena debe tener mensaje positivo");
+// Sugerencias caseras: nada de gambas ni de dos latas; medidas de casa (sin «15 g de pan»)
+const r5 = run("un plato de lentejas, 60 g de pan blanco y una manzana", "comida", "14:00");
+show("un plato de lentejas, 60 g de pan blanco y una manzana", r5);
+for (const rr of [r1, r2, r3, r4, r5, ...casos.map(([t, toma, h]) => run(t, toma, h))]) for (const c of rr) {
+  if (/gambas|dos latas|tres latas/i.test(c.texto)) fail("sugerencia poco casera: " + c.texto);
+  if (/\b\d+ g de /.test(c.texto)) fail("gramos en el texto principal (van en la cifra): " + c.texto);
+}
 // Qué comer ahora
 const q = coach.queComer({ perfil: PERFIL_JORGE, dia: [], toma: "cena", frecuentes: ["huevo", "atun-al-natural"] });
 console.log("\nQué cenar:"); for (const o of q.opciones) console.log(`  - ${o.titulo} — ${o.porque} (${o.cifra})`);

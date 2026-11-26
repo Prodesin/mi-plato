@@ -409,3 +409,9 @@ details.ayuda summary { min-height: 44px; display: flex; align-items: center; fo
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+.ring__u { font-size: 14px; font-weight: 700; color: var(--muted); letter-spacing: 0; }
+/* Ajustes: campos de la rejilla alineados por fila aunque una etiqueta ocupe dos líneas */
+.k-grid.g2 { row-gap: 0; }
+.k-grid.g2 > .k-field { display: grid; grid-template-rows: subgrid; grid-row: span 3; row-gap: 4px; align-content: start; }
+.k-grid.g2 > .k-field > .k-field__label { align-self: end; }
+.k-grid.g2 > .k-field > small { grid-column: 1; }

@@ -158,6 +158,7 @@ export function LinksPanel() {
       <L href="https://prodesin.github.io/mi-entrenador/" t="Mi entrenador" s="Fuerza, caminatas y peso" />
       <L href="https://prodesin.github.io/mi-menu/" t="Mi menú" s="Menú semanal y lista de la compra" />
       <L href="https://prodesin.github.io/mi-tension/" t="Mi tensión" s="Registro de tensión arterial" />
+      <L href="https://prodesin.github.io/mi-salud/" t="Mi salud" s="Panel diario: tensión, peso, glucosa y medicación" />
     </Block>
   );
 }

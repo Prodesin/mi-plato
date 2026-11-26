@@ -56,17 +56,17 @@ export function Ajustes({ datos }: { datos: Datos }) {
             <div class="k-grid g2">
               <Num label="Altura (cm)" k="altura" perfil={perfil} set={setPerfil} />
               <Num label="Peso (kg)" k="peso" perfil={perfil} set={setPerfil} />
-              <Num label="Calorías al día (objetivo)" k="kcal" perfil={perfil} set={setPerfil} />
+              <Num label="Calorías al día" k="kcal" perfil={perfil} set={setPerfil} />
               <Num label="Proteína al día (g)" k="prot" perfil={perfil} set={setPerfil} />
               <Num label="Calorías mínimas" k="kcalMin" perfil={perfil} set={setPerfil} />
               <Num label="Calorías máximas" k="kcalMax" perfil={perfil} set={setPerfil} />
               <Num label="Proteína mínima (g)" k="protMin" perfil={perfil} set={setPerfil} />
-              <Num label="Fibra al día (g, como mínimo)" k="fibra" perfil={perfil} set={setPerfil} />
-              <Num label="Hidratos al día: mínimo (g)" k="hcMin" perfil={perfil} set={setPerfil} />
-              <Num label="Hidratos al día: máximo (g)" k="hcMax" perfil={perfil} set={setPerfil} />
-              <Num label="Hidratos por comida principal (g)" k="hcComida" perfil={perfil} set={setPerfil} hint="pan, arroz, pasta, patata, fruta…" />
-              <Num label="Grasa al día: de (g)" k="grMin" perfil={perfil} set={setPerfil} />
-              <Num label="Grasa al día: hasta (g)" k="grMax" perfil={perfil} set={setPerfil} />
+              <Num label="Fibra mínima (g)" k="fibra" perfil={perfil} set={setPerfil} />
+              <Num label="Hidratos mínimos (g)" k="hcMin" perfil={perfil} set={setPerfil} />
+              <Num label="Hidratos máximos (g)" k="hcMax" perfil={perfil} set={setPerfil} />
+              <Num label="Hidratos por comida (g)" k="hcComida" perfil={perfil} set={setPerfil} hint="en comida y cena: pan, arroz, pasta, patata, fruta…" />
+              <Num label="Grasa mínima (g)" k="grMin" perfil={perfil} set={setPerfil} />
+              <Num label="Grasa máxima (g)" k="grMax" perfil={perfil} set={setPerfil} />
             </div>
             <div class="btn-row"><Button label="Volver a los valores de Jorge" onClick={() => { setPerfil(PERFIL_JORGE); toast("Valores restaurados."); }} /></div>
           </Block>

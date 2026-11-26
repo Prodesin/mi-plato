@@ -168,13 +168,15 @@ export function corregirComida(meal: { items: Item[]; toma: Toma; hora: string }
       if (food) nuevoG = Math.max(5, snap(food, carbItem.g * nuevaFrac, 0.25, 6));
       if (nuevoG >= carbItem.g) nuevoG = Math.max(5, Math.round((carbItem.g * 0.75) / 5) * 5);
       const queda = tot.c - (cIt * (carbItem.g - nuevoG)) / carbItem.g;
-      const cant = food ? cantidadTexto(food, nuevoG) : `${nuevoG} g de ${nombreMin(carbItem)}`;
+      const cant = food ? cantidadTexto(food, nuevoG) : nuevoG <= carbItem.g * 0.55 ? `la mitad de ${nombreMin(carbItem)}` : `un poco menos de ${nombreMin(carbItem)}`;
+      const otro = items.filter((i) => i.id !== carbItem!.id).map((i) => ({ i, c: itemTotales(i).c })).sort((x, y) => y.c - x.c)[0];
+      const restoTxt = otro && otro.c >= 15 ? ` (${nombreMin(otro.i)} suma ≈ ${u(otro.c, "g")})` : "";
       tocados.add(carbItem.id);
       push({
         tipo: tot.c > T.hc * 1.35 ? "alerta" : "aviso", prio: 9.5,
-        texto: queda <= T.hc * 1.1 ? `Con ${cant} vas bien` : `Baja a ${cant}: es lo que más hidratos lleva`,
+        texto: queda <= T.hc * 1.1 ? `Con ${cant} vas bien` : `Toma solo ${cant}: es lo que más hidratos lleva`,
         porque: "Así el azúcar te sube menos y no te da el bajón después.",
-        cifra: `de ${u(carbItem.g, "g")} a ${u(nuevoG, "g")} → te quedas en ≈ ${u(queda, "g")} de hidratos`,
+        cifra: `de ${u(carbItem.g, "g")} a ${u(nuevoG, "g")} → la comida se queda en ≈ ${u(queda, "g")} de hidratos${restoTxt}`,
         accion: { t: "gramos", itemId: carbItem.id, g: nuevoG },
       });
     } else {
@@ -203,13 +205,15 @@ export function corregirComida(meal: { items: Item[]; toma: Toma; hora: string }
     const opciones = candidatosProteina(meal.toma, items, deficit, tot.kcal, T.kcal, frec, cat);
     if (opciones.length) {
       const [a, b] = opciones;
-      const textoA = cantidadTexto(a.food, a.g);
+      const huevo = getFood("huevo", cat);
+      const extra = a.food.id === "atun-al-natural" && a.p < deficit - 6 && huevo && !items.some((i) => i.foodId === "huevo") ? huevo : undefined;
+      const textoA = cantidadTexto(a.food, a.g) + (extra ? " y un huevo" : "");
       const textoB = b ? cantidadTexto(b.food, b.g) : "";
       push({
         tipo: tot.p < T.p * 0.5 ? "alerta" : "aviso", prio: 10,
         texto: `Añade ${textoA}${b ? ` (o ${textoB})` : ""}`,
         porque: principal ? "Así llegas a la proteína que necesitas para el músculo y te quedas saciado." : "Así aguantas mejor hasta la siguiente comida y cuidas el músculo.",
-        cifra: `≈ ${u(a.p, "g")} de proteína · ahora llevas ${u(tot.p, "g")}`,
+        cifra: `≈ ${u(a.p + (extra ? (extra.p * 60) / 100 : 0), "g")} de proteína · ahora llevas ${u(tot.p, "g")}`,
         accion: { t: "anadir", foodId: a.food.id, g: a.g },
       });
     }
@@ -362,10 +366,10 @@ export function corregirComida(meal: { items: Item[]; toma: Toma; hora: string }
 }
 
 const PROT_DEFECTO: Record<Toma, string[]> = {
-  desayuno: ["huevo", "yogur-de-proteinas", "queso-fresco-batido-0", "pechuga-de-pavo-en-lonchas", "jamon-cocido", "skyr"],
-  comida: ["atun-al-natural", "pechuga-de-pollo-a-la-plancha", "huevo", "gambas-cocidas", "queso-fresco-batido-0"],
-  merienda: ["yogur-de-proteinas", "queso-fresco-batido-0", "pechuga-de-pavo-en-lonchas", "atun-al-natural", "skyr"],
-  cena: ["atun-al-natural", "huevo", "pechuga-de-pollo-a-la-plancha", "queso-fresco-batido-0", "gambas-cocidas", "pechuga-de-pavo-en-lonchas"],
+  desayuno: ["huevo", "yogur-de-proteinas", "queso-fresco-batido-0", "pechuga-de-pavo-en-lonchas", "jamon-cocido", "leche-semidesnatada"],
+  comida: ["huevo", "atun-al-natural", "pechuga-de-pollo-a-la-plancha", "garbanzos-cocidos", "lentejas-cocidas", "queso-fresco-batido-0"],
+  merienda: ["yogur-de-proteinas", "queso-fresco-batido-0", "pechuga-de-pavo-en-lonchas", "atun-al-natural", "huevo"],
+  cena: ["huevo", "atun-al-natural", "pechuga-de-pollo-a-la-plancha", "queso-fresco-batido-0", "pechuga-de-pavo-en-lonchas", "yogur-de-proteinas"],
   otro: ["yogur-de-proteinas", "queso-fresco-batido-0", "huevo"],
 };
 const ES_PROTEINA = new Set(["carne", "pescado", "huevo", "embutido", "lacteo", "legumbre", "suplemento"]);
@@ -384,14 +388,15 @@ function candidatosProteina(toma: Toma, items: Item[], deficit: number, kcalAct:
     if (!f || ya.has(f.id)) continue;
     const r = f.rac[0]?.g ?? 100;
     const necesario = (deficit / Math.max(f.p, 1)) * 100;
-    let g = snap(f, necesario, 0.5, 3, true);
+    const maxRac = f.id === "atun-al-natural" ? 1 : 2;
+    let g = snap(f, necesario, 0.5, maxRac, true);
     if (g < r * 0.5) g = Math.round(r * 0.5);
-    if (g > r * 2.6) continue;
     const p = (f.p * g) / 100;
     const kc = (f.kcal * g) / 100;
     let score = -Math.abs(p - deficit) / Math.max(deficit, 1);
     if (kcalAct + kc > kcalObj * 1.4) score -= 0.8;
     if (frec.has(f.id)) score += 0.5;
+    score += (ids.length - ids.indexOf(id)) * 0.04; // a igualdad, lo más básico de casa primero
     res.push({ food: f, g, p, score });
   }
   res.sort((a, b) => b.score - a.score);
@@ -453,7 +458,7 @@ const PLATOS: Plato[] = [
   { titulo: "Un puñado de frutos secos y una fruta", tomas: ["merienda", "otro"], clave: "frutos-secos", items: [["frutos-secos-variados", 25], ["pieza-de-fruta", 150]] },
   { titulo: "Tortilla de 2 huevos con jamón cocido", tomas: ["desayuno", "merienda"], clave: "huevo", items: [["tortilla-francesa", 120], ["jamon-cocido", 40]] },
   { titulo: "Tortilla de 2 huevos con ensalada", tomas: ["comida", "cena"], clave: "huevo", items: [["tortilla-francesa", 120], ["ensalada-mixta", 200], ["aceite-de-oliva", 5]] },
-  { titulo: "Dos latas de atún con tomate y un poco de pan integral", tomas: ["comida", "cena"], clave: "atun", items: [["atun-al-natural", 104], ["tomate", 200], ["pan-integral", 30], ["aceite-de-oliva", 5]] },
+  { titulo: "Una lata de atún con tomate, un huevo cocido y un poco de pan integral", tomas: ["comida", "cena"], clave: "atun", items: [["atun-al-natural", 52], ["huevo", 60], ["tomate", 200], ["pan-integral", 30], ["aceite-de-oliva", 5]] },
   { titulo: "Pechuga de pollo a la plancha con verdura", tomas: ["comida", "cena"], clave: "pollo", items: [["pechuga-de-pollo-a-la-plancha", 150], ["verdura-variada", 250], ["aceite-de-oliva", 5]] },
   { titulo: "Lentejas de bote con verdura y un huevo", tomas: ["comida", "cena"], clave: "lentejas", items: [["lentejas-cocidas", 250], ["verdura-variada", 150], ["huevo", 60]] },
   { titulo: "Merluza a la plancha con ensalada y una patata cocida", tomas: ["comida", "cena"], clave: "merluza", items: [["merluza-a-la-plancha", 180], ["ensalada-mixta", 200], ["patata-cocida", 150], ["aceite-de-oliva", 5]] },

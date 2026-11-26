@@ -77,58 +77,16 @@ export function Ajustes({ datos }: { datos: Datos }) {
     <div class="cols">
       <div class="col col-a">
         <div style={{ order: 0 }}>
-          <Block heading="Tú y tus objetivos">
-            <Text>Todo esto se puede cambiar. Con estos números te corrijo las comidas.</Text>
-            <Input label="Nombre" value={perfil.nombre} onChange={(v) => setPerfil({ ...perfil, nombre: v })} />
-            <div class="k-grid g2">
-              <Num label="Altura (cm)" k="altura" perfil={perfil} set={setPerfil} />
-              <Num label="Peso (kg)" k="peso" perfil={perfil} set={setPerfil} />
-              <Num label="Calorías al día" k="kcal" perfil={perfil} set={setPerfil} />
-              <Num label="Proteína al día (g)" k="prot" perfil={perfil} set={setPerfil} />
-              <Num label="Calorías mínimas" k="kcalMin" perfil={perfil} set={setPerfil} />
-              <Num label="Calorías máximas" k="kcalMax" perfil={perfil} set={setPerfil} />
-              <Num label="Proteína mínima (g)" k="protMin" perfil={perfil} set={setPerfil} />
-              <Num label="Fibra mínima (g)" k="fibra" perfil={perfil} set={setPerfil} />
-              <Num label="Hidratos mínimos (g)" k="hcMin" perfil={perfil} set={setPerfil} />
-              <Num label="Hidratos máximos (g)" k="hcMax" perfil={perfil} set={setPerfil} />
-              <Num label="Hidratos por comida (g)" k="hcComida" perfil={perfil} set={setPerfil} hint="en comida y cena: pan, arroz, pasta, patata, fruta…" />
-              <Num label="Grasa mínima (g)" k="grMin" perfil={perfil} set={setPerfil} />
-              <Num label="Grasa máxima (g)" k="grMax" perfil={perfil} set={setPerfil} />
-            </div>
-            <div class="btn-row"><Button label="Volver a los valores de Jorge" onClick={() => { setPerfil(PERFIL_JORGE); toast("Valores restaurados."); }} /></div>
-          </Block>
-        </div>
-        <div style={{ order: 1 }}>
-          <Block heading="Coco (tu asistente)">
-            <Text>Desde «Hoy» y «Semana» puedes mandarle a Coco tus comidas. Lo normal es compartir o copiar el texto; lo de abajo es opcional.</Text>
-            <Input label="URL del webhook de Coco (opcional)" value={sec.cocoUrl} onChange={(v) => setSec({ ...sec, cocoUrl: v.trim() })} placeholder="https://…" />
-            <label class="k-field"><span class="k-field__label">Clave del webhook (opcional)</span>
-              <input class="k-input" type="password" autoComplete="off" autoCapitalize="off" spellcheck={false} value={sec.cocoClave} onInput={(e) => setSec({ ...sec, cocoClave: (e.currentTarget as HTMLInputElement).value.trim() })} /></label>
-            <Text>Desde el navegador el webhook puede fallar por una limitación de seguridad (CORS). Si falla, no pasa nada: se usa el Atajo o se comparte el texto.</Text>
-            <Toggle label="Tengo creado el Atajo de iPhone" value={ajustes.usarAtajo} onChange={(v) => setAjustes((a) => ({ ...a, usarAtajo: v }))} />
-            <Input label="Nombre del Atajo" value={ajustes.atajo} onChange={(v) => setAjustes((a) => ({ ...a, atajo: v }))} placeholder="Enviar a Coco" />
-            <details class="ayuda"><summary>Cómo crear el Atajo</summary>
-              <ol class="k-steps">
-                <li><span class="k-steps__n">1</span><span class="k-steps__body"><span class="k-steps__title">En la app Atajos, crea uno nuevo con el nombre «{ajustes.atajo || "Enviar a Coco"}».</span></span></li>
-                <li><span class="k-steps__n">2</span><span class="k-steps__body"><span class="k-steps__title">Añade la acción «Obtener contenido de URL» con la URL del webhook y método POST.</span></span></li>
-                <li><span class="k-steps__n">3</span><span class="k-steps__body"><span class="k-steps__title">Cabeceras: Authorization = Bearer tu clave; Content-Type = application/json.</span></span></li>
-                <li><span class="k-steps__n">4</span><span class="k-steps__body"><span class="k-steps__title">Cuerpo de la solicitud: Archivo → elige «Portapapeles».</span></span></li>
-              </ol>
-              <Text>Los Atajos no tienen CORS, por eso funcionan. Mi plato copia el contenido y abre el Atajo.</Text>
-            </details>
-          </Block>
-        </div>
-      </div>
-      <div class="col col-b">
-        <div style={{ order: 2 }}>
           <Block heading="Inteligencia artificial">
             <Text>Haz una foto al plato y Gemini te apunta lo que hay; tú solo lo repasas antes de guardar. Es opcional: sin esto la app ya funciona.</Text>
             <section class="ia-gemini" aria-label="Gemini">
               <div class="ia-gemini__head"><b>Gemini (Google)</b><span class="k-status k-status--accent">gratis</span></div>
               <label class="k-field"><span class="k-field__label">Clave de Gemini</span>
-                <span class="row-in tight"><input class="k-input" aria-label="Clave de Gemini" type={verG ? "text" : "password"} autoComplete="off" autoCapitalize="off" spellcheck={false} value={claveG} placeholder="pega aquí tu clave" onInput={(e) => ponerClaveG((e.currentTarget as HTMLInputElement).value)} />
-                  <button type="button" class="k-btn" onClick={() => setVerG((v) => !v)}>{verG ? "Ocultar" : "Mostrar"}</button>
-                  {puedePegar ? <button type="button" class="k-btn" onClick={pegar}>Pegar</button> : null}</span></label>
+                <input class="k-input" aria-label="Clave de Gemini" type={verG ? "text" : "password"} autoComplete="off" autoCapitalize="off" spellcheck={false} value={claveG} placeholder="pega aquí tu clave" onInput={(e) => ponerClaveG((e.currentTarget as HTMLInputElement).value)} /></label>
+              <div class="ia-clave-btns">
+                <button type="button" class="k-btn" onClick={() => setVerG((v) => !v)}>{verG ? "Ocultar" : "Mostrar"}</button>
+                {puedePegar ? <button type="button" class="k-btn" onClick={pegar}>Pegar</button> : null}
+              </div>
               <p class="k-text"><a class="ia-link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Consigue tu clave gratis ›</a></p>
               <div class="k-field"><span class="k-field__label">Modelo</span>
                 <Segmented<string> options={GEMINI_MODELOS.map((m) => ({ value: m.id, label: m.label.split(" · ")[0] }))} value={modeloG} onChange={(v) => setAjustes((a) => ({ ...a, modelos: { ...a.modelos, gemini: v === provInfo("gemini").defecto ? "" : v } }))} />
@@ -155,6 +113,50 @@ export function Ajustes({ datos }: { datos: Datos }) {
             </details>
           </Block>
         </div>
+        <div style={{ order: 1 }}>
+          <Block heading="Tú y tus objetivos">
+            <Text>Todo esto se puede cambiar. Con estos números te corrijo las comidas.</Text>
+            <Input label="Nombre" value={perfil.nombre} onChange={(v) => setPerfil({ ...perfil, nombre: v })} />
+            <div class="k-grid g2">
+              <Num label="Altura (cm)" k="altura" perfil={perfil} set={setPerfil} />
+              <Num label="Peso (kg)" k="peso" perfil={perfil} set={setPerfil} />
+              <Num label="Calorías al día" k="kcal" perfil={perfil} set={setPerfil} />
+              <Num label="Proteína al día (g)" k="prot" perfil={perfil} set={setPerfil} />
+              <Num label="Calorías mínimas" k="kcalMin" perfil={perfil} set={setPerfil} />
+              <Num label="Calorías máximas" k="kcalMax" perfil={perfil} set={setPerfil} />
+              <Num label="Proteína mínima (g)" k="protMin" perfil={perfil} set={setPerfil} />
+              <Num label="Fibra mínima (g)" k="fibra" perfil={perfil} set={setPerfil} />
+              <Num label="Hidratos mínimos (g)" k="hcMin" perfil={perfil} set={setPerfil} />
+              <Num label="Hidratos máximos (g)" k="hcMax" perfil={perfil} set={setPerfil} />
+              <Num label="Hidratos por comida (g)" k="hcComida" perfil={perfil} set={setPerfil} hint="en comida y cena: pan, arroz, pasta, patata, fruta…" />
+              <Num label="Grasa mínima (g)" k="grMin" perfil={perfil} set={setPerfil} />
+              <Num label="Grasa máxima (g)" k="grMax" perfil={perfil} set={setPerfil} />
+            </div>
+            <div class="btn-row"><Button label="Volver a los valores de Jorge" onClick={() => { setPerfil(PERFIL_JORGE); toast("Valores restaurados."); }} /></div>
+          </Block>
+        </div>
+        <div style={{ order: 2 }}>
+          <Block heading="Coco (tu asistente)">
+            <Text>Desde «Hoy» y «Semana» puedes mandarle a Coco tus comidas. Lo normal es compartir o copiar el texto; lo de abajo es opcional.</Text>
+            <Input label="URL del webhook de Coco (opcional)" value={sec.cocoUrl} onChange={(v) => setSec({ ...sec, cocoUrl: v.trim() })} placeholder="https://…" />
+            <label class="k-field"><span class="k-field__label">Clave del webhook (opcional)</span>
+              <input class="k-input" type="password" autoComplete="off" autoCapitalize="off" spellcheck={false} value={sec.cocoClave} onInput={(e) => setSec({ ...sec, cocoClave: (e.currentTarget as HTMLInputElement).value.trim() })} /></label>
+            <Text>Desde el navegador el webhook puede fallar por una limitación de seguridad (CORS). Si falla, no pasa nada: se usa el Atajo o se comparte el texto.</Text>
+            <Toggle label="Tengo creado el Atajo de iPhone" value={ajustes.usarAtajo} onChange={(v) => setAjustes((a) => ({ ...a, usarAtajo: v }))} />
+            <Input label="Nombre del Atajo" value={ajustes.atajo} onChange={(v) => setAjustes((a) => ({ ...a, atajo: v }))} placeholder="Enviar a Coco" />
+            <details class="ayuda"><summary>Cómo crear el Atajo</summary>
+              <ol class="k-steps">
+                <li><span class="k-steps__n">1</span><span class="k-steps__body"><span class="k-steps__title">En la app Atajos, crea uno nuevo con el nombre «{ajustes.atajo || "Enviar a Coco"}».</span></span></li>
+                <li><span class="k-steps__n">2</span><span class="k-steps__body"><span class="k-steps__title">Añade la acción «Obtener contenido de URL» con la URL del webhook y método POST.</span></span></li>
+                <li><span class="k-steps__n">3</span><span class="k-steps__body"><span class="k-steps__title">Cabeceras: Authorization = Bearer tu clave; Content-Type = application/json.</span></span></li>
+                <li><span class="k-steps__n">4</span><span class="k-steps__body"><span class="k-steps__title">Cuerpo de la solicitud: Archivo → elige «Portapapeles».</span></span></li>
+              </ol>
+              <Text>Los Atajos no tienen CORS, por eso funcionan. Mi plato copia el contenido y abre el Atajo.</Text>
+            </details>
+          </Block>
+        </div>
+      </div>
+      <div class="col col-b">
         <div style={{ order: 3 }}><BackupPanel /></div>
         <div style={{ order: 4 }}><LinksPanel /></div>
         <div style={{ order: 5 }}><PrivacyPanel /></div>

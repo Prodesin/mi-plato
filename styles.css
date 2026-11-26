@@ -705,3 +705,52 @@ textarea.k-input.entrada__ta, .entrada .entrada__ta { resize: none !important; }
   .res__leyenda small { display: none; }
   .res__consejo { font-size: 14px; -webkit-line-clamp: 4; }
 }
+
+/* ---------- Retoques 4 ---------- */
+.ia-clave-btns { display: flex; gap: 8px; }
+.ia-clave-btns .k-btn { flex: 1 1 0; min-height: 44px; }
+.ia-gemini .k-input { width: 100%; }
+.ia-gemini small, .ia-gemini .k-text { overflow-wrap: anywhere; }
+
+/* Resumen: llena el alto disponible sin scroll */
+#area-resumen:not([hidden]) { flex: 1 1 auto; }
+.areas { display: flex; flex-direction: column; }
+.areas > .area { flex: 0 0 auto; }
+.areas > #area-resumen:not([hidden]) { flex: 1 1 auto; }
+.res { flex: 1 1 auto; }
+.res__consejo { display: block; -webkit-line-clamp: unset; overflow: visible; }
+.res__consejo b { display: block; }
+@media (min-width: 560px) {
+  .res__dia { flex: 1 1 auto; justify-content: center; }
+  .res__ring { width: clamp(150px, min(58vw, 44vh), 380px); }
+  .res__centro b { font-size: clamp(30px, 6vh, 52px); }
+  .res__centro span { max-width: 110px; font-size: 13px; }
+  .res__frase { font-size: clamp(24px, 3.6vh, 32px); }
+  .res__consejo { font-size: 16px; }
+  .res__acciones .k-btn, .res__foto { min-height: 60px; }
+  .res__ver { min-height: 60px; }
+}
+@media (min-width: 560px) and (max-aspect-ratio: 11/10) {
+  .res { gap: 14px; }
+  .res__dia { gap: 16px; }
+  .res__dia-pt i { width: 18px; height: 18px; }
+  .res__semana { padding: 6px 12px 0; }
+}
+@media (min-width: 560px) and (min-aspect-ratio: 11/10) {
+  .res { grid-template-rows: auto 2fr 1fr 1fr; align-items: stretch; flex: 1 1 auto; }
+  .res__dia { grid-row: 2 / span 3; }
+  .res__acciones { grid-row: 2; }
+  .res__ver { grid-row: 3; }
+  .res__semana { grid-row: 4; align-items: center; }
+  .res__ring { width: clamp(150px, min(28vw, 54vh), 380px); }
+  .res__leyenda li { flex-wrap: wrap; }
+}
+@media (min-width: 560px) and (max-width: 860px) and (min-aspect-ratio: 11/10) {
+  .res__dia { gap: 14px; padding: 14px; }
+  .res__ring { width: clamp(110px, 30vh, 190px); }
+  .res__frase { font-size: 22px; }
+  .res__leyenda small { display: inline; }
+  .res__consejo { font-size: 14.5px; }
+}
+#app { display: flex; flex-direction: column; }
+#app > .areas { flex: 1 1 auto; min-height: 0; }
